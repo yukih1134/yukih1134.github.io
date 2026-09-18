@@ -21,16 +21,16 @@ const shop=[
 ['med-kit','医疗','护理包','🧰',10,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',14,'treat'],['med-rest','医疗','休息垫','🛏️',7,'rest']
 ].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5]}));
 const petReactions={
-'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb c1">•</span><span class="crumb c2">•</span>',sound:'crunch',mood:4},
+'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4},
 'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5},
-'food-can':{cls:'eating-can',notice:'罐头刚打开，奶糕就一路小跑过来了。',text:'奶糕埋头吃主食罐头，吃得特别专心。',prop:'<span class="prop-can">🥫</span><span class="prop-bowl">🥣</span>',fx:'<span class="smell s1">〜</span><span class="smell s2">〜</span>',sound:'pop',mood:5},
-'food-freeze':{cls:'eating-freeze',notice:'冻干发出沙沙声，奶糕抬头盯住了袋子。',text:'奶糕叼走一块冻干，嚼得嘎嘣脆。',prop:'<span class="prop-freeze">🍗</span>',fx:'<span class="crumb c1">•</span><span class="crumb c2">•</span>',sound:'crunch',mood:5},
+'food-can':{cls:'eating-can',notice:'罐头刚打开，奶糕就一路小跑过来了。',text:'奶糕埋头吃主食罐头，吃得特别专心。',prop:'<span class="prop-can">🥫</span><span class="prop-bowl">🥣</span>',fx:'<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',sound:'pop',mood:5},
+'food-freeze':{cls:'eating-freeze',notice:'冻干发出沙沙声，奶糕抬头盯住了袋子。',text:'奶糕叼走一块冻干，嚼得嘎嘣脆。',prop:'<span class="prop-freeze">🍗</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:5},
 'toy-wand':{cls:'play-wand',notice:'逗猫棒一晃，奶糕的眼睛立刻跟着移动。',text:'奶糕压低身体、瞄准，然后猛地扑向逗猫棒！',prop:'<span class="prop-wand">🪶</span>',fx:'<span class="toy-motion">✦</span>',sound:'toy',mood:6},
 'toy-ball':{cls:'play-ball',notice:'小球滚过地板，奶糕歪头盯了两秒。',text:'奶糕用爪子一拍，小球滚远了，它马上追过去。',prop:'<span class="prop-ball">⚽</span>',fx:'<span class="speed-line">➜</span>',sound:'ball',mood:6},
 'toy-scratch':{cls:'play-scratch',notice:'奶糕走到猫抓板旁边闻了闻。',text:'奶糕前爪伸直，在猫抓板上认真抓了好几下。',prop:'<span class="prop-scratch">🧶</span>',fx:'<span class="scratch-line">///</span>',sound:'scratch',mood:5},
 'toy-box':{cls:'play-box',notice:'纸箱刚放下，奶糕绕着它转了一圈。',text:'奶糕钻进纸箱，只露出脑袋偷偷观察外面。',prop:'<span class="prop-box">📦</span>',fx:'<span class="peek-mark">…</span>',sound:'rustle',mood:6},
-'care-brush':{cls:'care-brush',notice:'梳子靠近时，奶糕先回头闻了闻。',text:'从头到背轻轻梳毛，奶糕眯着眼睛坐得很稳。',prop:'<span class="prop-brush">🪮</span>',fx:'<span class="spark s1">✦</span><span class="spark s2">✦</span>',sound:'brush',mood:5},
-'care-bath':{cls:'care-bath',notice:'听见水声，奶糕往后缩了一小步。',text:'温水花洒轻轻冲洗，泡泡洗掉脏东西，最后甩了甩毛。',prop:'<span class="prop-shower">🚿</span>',fx:'<span class="bubble b1">○</span><span class="bubble b2">○</span><span class="bubble b3">○</span>',sound:'splash',mood:2},
+'care-brush':{cls:'care-brush',notice:'梳子靠近时，奶糕先回头闻了闻。',text:'从头到背轻轻梳毛，奶糕眯着眼睛坐得很稳。',prop:'<span class="prop-brush">🪮</span>',fx:'<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>',sound:'brush',mood:5},
+'care-bath':{cls:'care-bath',notice:'听见水声，奶糕往后缩了一小步。',text:'温水花洒轻轻冲洗，泡泡洗掉脏东西，最后甩了甩毛。',prop:'<span class="prop-shower">🚿</span>',fx:'<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>',sound:'splash',mood:2},
 'care-towel':{cls:'care-towel',notice:'大毛巾铺开，奶糕站在原地看了看。',text:'毛巾轻轻包住奶糕，把湿湿的毛擦干。',prop:'<span class="prop-towel">🧺</span>',fx:'<span class="warm-line">☀</span>',sound:'rustle',mood:4},
 'care-nail':{cls:'care-nail',notice:'奶糕把爪子缩了一下，但还是乖乖坐好。',text:'只做模拟指甲护理：轻轻托住爪子，一只一只检查。',prop:'<span class="prop-nail">✨</span>',fx:'<span class="paw-mark">🐾</span>',sound:'clip',mood:2},
 'med-kit':{cls:'med-kit',notice:'护理包打开，奶糕安静地看着里面的东西。',text:'完成一次温和的模拟护理，奶糕随后趴下休息。',prop:'<span class="prop-kit">🧰</span>',fx:'<span class="care-plus">＋</span>',sound:'care',mood:3},
@@ -43,15 +43,63 @@ let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}
 const save=()=>localStorage.setItem(K,JSON.stringify(state));
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d).filter(t=>t.core),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
-const rec=k=>state.records[k]||(state.records[k]={completed:[]});
-const full=d=>{const c=core(d);return c.length&&c.every(t=>(state.records[key(d)]?.completed||[]).includes(t.id))};
+const rec=(k,d=new Date())=>{
+    if(!state.records[k]) state.records[k]={completed:[],planned:core(d).map(t=>t.id)};
+    if(!Array.isArray(state.records[k].completed)) state.records[k].completed=[];
+    if(!Array.isArray(state.records[k].planned)&&k===key()) state.records[k].planned=core(d).map(t=>t.id);
+    return state.records[k];
+  };
+  function syncTodayPlan(){const d=new Date(),r=rec(key(d),d);r.planned=core(d).map(t=>t.id);save()}
+const full=d=>{
+    const r=state.records[key(d)], ids=Array.isArray(r?.planned)?r.planned:core(d).map(t=>t.id);
+    return ids.length>0&&ids.every(id=>(r?.completed||[]).includes(id));
+  };
 const weekStart=(d=new Date())=>{let x=new Date(d),n=(x.getDay()+6)%7;x.setDate(x.getDate()-n);x.setHours(0,0,0,0);return x};
 const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{let d=new Date(s);d.setDate(s.getDate()+i);return d})};
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function catSvg(kind='large'){
+  return `<svg class="cat-svg ${kind}" viewBox="0 0 260 200" aria-hidden="true">
+    <g class="cat-tail-g"><path class="cat-tail-shape" d="M184 137 C238 126 246 86 219 73 C203 65 188 77 198 91 C207 104 226 93 224 78" fill="none" stroke="#d77a32" stroke-width="22" stroke-linecap="round"/></g>
+    <g class="cat-body-g">
+      <ellipse cx="142" cy="139" rx="70" ry="47" fill="#e98a3a"/>
+      <path d="M95 137 C106 101 128 92 156 98 C181 103 198 124 199 151 C174 174 116 177 85 158 Z" fill="#ec9345"/>
+      <path d="M111 109 C118 128 119 151 113 170" fill="none" stroke="#c96d2c" stroke-width="9" stroke-linecap="round"/>
+      <path d="M144 102 C148 120 150 139 147 158" fill="none" stroke="#c96d2c" stroke-width="8" stroke-linecap="round"/>
+      <ellipse cx="115" cy="169" rx="24" ry="10" fill="#f7cda5"/>
+      <ellipse cx="171" cy="169" rx="25" ry="10" fill="#f7cda5"/>
+      <path class="cat-front-paw" d="M111 136 C101 148 99 164 106 174" fill="none" stroke="#e98a3a" stroke-width="18" stroke-linecap="round"/>
+    </g>
+    <g class="cat-head-g">
+      <path d="M84 65 L92 29 L119 52 Z" fill="#e98a3a" stroke="#b85f25" stroke-width="4"/>
+      <path d="M154 52 L181 29 L186 69 Z" fill="#e98a3a" stroke="#b85f25" stroke-width="4"/>
+      <path d="M94 43 L98 32 L109 47 Z" fill="#f4a5a5"/>
+      <path d="M166 47 L178 33 L179 51 Z" fill="#f4a5a5"/>
+      <ellipse cx="136" cy="82" rx="58" ry="48" fill="#ee9649" stroke="#b85f25" stroke-width="4"/>
+      <path d="M104 55 L119 64 M100 69 L118 73 M168 56 L153 65 M174 70 L155 74" stroke="#b85f25" stroke-width="5" stroke-linecap="round"/>
+      <g class="cat-eyes">
+        <ellipse cx="116" cy="80" rx="7" ry="10" fill="#24354f"/><ellipse cx="156" cy="80" rx="7" ry="10" fill="#24354f"/>
+        <circle cx="118" cy="77" r="2.2" fill="#fff"/><circle cx="158" cy="77" r="2.2" fill="#fff"/>
+      </g>
+      <g class="cat-eyes-closed"><path d="M108 82 Q116 88 124 82 M148 82 Q156 88 164 82" fill="none" stroke="#24354f" stroke-width="4" stroke-linecap="round"/></g>
+      <path d="M131 93 Q136 98 141 93 Q136 88 131 93" fill="#a65b52"/>
+      <path d="M136 98 Q132 106 124 104 M136 98 Q140 106 148 104" fill="none" stroke="#6b4a3d" stroke-width="3" stroke-linecap="round"/>
+      <path d="M103 97 L72 92 M103 103 L69 104 M169 97 L201 91 M169 103 L204 105" stroke="#6b4a3d" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M105 111 Q136 132 168 111 Q164 137 136 141 Q109 136 105 111" fill="#f9dcc2" opacity=".75"/>
+    </g>
+  </svg>`;
+}
+
 
 let audioCtx=null;
 function ctx(){try{return audioCtx||(audioCtx=new (window.AudioContext||window.webkitAudioContext)())}catch{return null}}
+async function unlockAudio(){const c=ctx();if(c&&c.state==='suspended'){try{await c.resume()}catch(e){}}}
+function sweep(from,to,dur=.28,gain=.035,delay=0){
+  const c=ctx();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;
+  o.type='triangle';o.frequency.setValueAtTime(from,t);o.frequency.exponentialRampToValueAtTime(Math.max(60,to),t+dur);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.03);
+}
 function tone(freq=440,dur=.12,type='sine',gain=.035,delay=0){
   const c=ctx();if(!c)return;
   const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;
@@ -60,8 +108,8 @@ function tone(freq=440,dur=.12,type='sine',gain=.035,delay=0){
   o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.03);
 }
 function soundCheckin(){tone(660,.1,'sine',.03);tone(880,.12,'sine',.028,.08)}
-function soundMeow(){tone(420,.16,'triangle',.035);tone(300,.22,'triangle',.025,.11)}
-function soundPurr(){for(let i=0;i<5;i++)tone(95+i*3,.11,'sawtooth',.012,i*.07)}
+function soundMeow(){unlockAudio();sweep(720,410,.26,.032);sweep(520,300,.22,.018,.08)}
+function soundPurr(){unlockAudio();for(let i=0;i<8;i++)tone(92+(i%2)*7,.1,'sawtooth',.009,i*.065)}
 function soundSplash(){tone(520,.06,'sine',.02);tone(390,.08,'sine',.02,.07);tone(620,.06,'sine',.018,.14)}
 function soundToy(){tone(780,.07,'square',.018);tone(920,.07,'square',.018,.09)}
 function soundCare(){tone(500,.08,'sine',.02);tone(620,.12,'sine',.02,.08)}
@@ -84,7 +132,7 @@ function home(){
 const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0,pages=Math.max(1,Math.ceil(tt.length/3));tp=Math.min(tp,pages-1);const slice=tt.slice(tp*3,tp*3+3);
 page.innerHTML=`<div class="home-grid">
 <article class="card soft-pink"><div class="card-head"><div class="card-title">🗓️ 今日进度</div><span style="font-size:10px;color:var(--muted)">${d.getMonth()+1}月${d.getDate()}日 星期${wd[d.getDay()]}</span></div><div class="progress-body"><div class="progress-ring" style="--p:${p}%"><div class="progress-center"><strong>${n}/${cc.length}</strong><span>今日完成</span></div></div><div class="stat-list"><div class="stat"><span>⭐ 我的积分</span><strong>${state.points}</strong></div><div class="stat"><span>🐟 我的小鱼</span><strong>${state.fish}</strong></div><div class="stat"><span>📅 本周完成</span><strong>${weekFull()}/7</strong></div></div></div></article>
-<article class="card soft-amber"><div class="card-head"><div class="card-title">🐾 我的宠物 · 奶糕</div><button class="mini-action" data-go="pet">›</button></div><div class="pet-body"><div class="pet-scene"><div class="pet-bubble">${esc(state.pet.message)}</div><div class="cat">🐈</div></div><div class="pet-side"><div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div><div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div><div class="pet-status"><span>🐟 小鱼</span><b>${state.fish}</b></div><div class="pet-actions">${[['feed','🥣','喂食'],['play','🧶','玩耍'],['bath','🫧','洗澡'],['treat','🧰','护理']].map(x=>`<button class="pet-action" data-q="${x[0]}"><b>${x[1]}</b>${x[2]}</button>`).join('')}</div></div></div></article>
+<article class="card soft-amber home-pet-card"><div class="card-head"><div class="card-title">🐾 我的宠物 · 奶糕</div><button class="mini-action" data-go="pet">›</button></div><div class="pet-body"><div class="pet-scene"><div class="home-cat">${catSvg('mini')}</div></div><div class="pet-side"><div class="home-pet-message">${esc(state.pet.message)}</div><div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div><div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div><div class="pet-status"><span>🐟 小鱼</span><b>${state.fish}</b></div><div class="pet-actions">${[['feed','🥣','喂食'],['play','🧶','玩耍'],['bath','🫧','洗澡'],['treat','🧰','护理']].map(x=>`<button class="pet-action" data-q="${x[0]}"><b>${x[1]}</b>${x[2]}</button>`).join('')}</div></div></div></article>
 <article class="card soft-pink"><div class="card-head"><div class="card-title">🏆 我的奖励</div><button class="text-action" data-go="rewards">去兑换 ›</button></div><div class="reward-body"><div class="points-row"><strong>${state.points}</strong> 积分</div><div class="reward-track">${fixedRewards.map((r,i)=>`<div class="reward-node" style="left:${[18,50,82][i]}%"><i>${r.emoji}</i><b>${r.points}分</b><small>${r.title}</small></div>`).join('')}</div><div class="lock-note">🔒 本周满额 3 / 5 / 7 天解锁对应奖励</div></div></article>
 <article class="card tasks-card"><div class="tasks-toolbar"><h2>✅ 今日任务 <small>完成一项 +2分 +1🐟</small></h2><div class="pager"><button data-prev>‹</button><span class="page-pill">${tp+1}/${pages}</span><button data-next>›</button></div></div><div class="task-slider" id="slider"><div class="task-row">${slice.map(taskCard).join('')}</div></div></article>
 <article class="card soft-blue week-card"><div class="card-head"><div class="card-title">🗓️ 本周打卡</div><button class="mini-action" data-go="calendar">›</button></div><div class="week-body">${weekMini()}</div></article></div>`;
@@ -94,7 +142,7 @@ clearInterval(timer);if(pages>1)timer=setInterval(()=>{if(Date.now()>pauseUntil&
 }
 function taskCard(t){const d=done(t.id);return `<div class="task-card ${d?'done':''}"><div class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</div><div><div class="task-name">${esc(t.name)}</div><div class="task-status">${d?'今天已完成 ✓':'今日未完成'}</div></div><button class="check-btn ${d?'done':''}" data-check="${t.id}" ${d?'disabled':''}>${d?'已完成 ✓':'完成打卡 +2分'}</button></div>`}
 function complete(id){
-  const r=rec(key());if(r.completed.includes(id))return;
+  const r=rec(key(),new Date());if(r.completed.includes(id))return;
   r.completed.push(id);state.points+=2;state.fish++;state.pet.mood=Math.min(100,state.pet.mood+2);
   state.pet.message='收到一条小鱼！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
   soundCheckin();toast('完成啦！+2分 · 🐟 +1');
@@ -136,9 +184,9 @@ function subject(s){
   page.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>taskModal(s));
   page.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>taskModal(s,b.dataset.edit));
   page.querySelectorAll('[data-subcheck]').forEach(b=>b.onclick=()=>complete(b.dataset.subcheck));
-  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);save();subject(s)});
+  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);syncTodayPlan();save();subject(s)});
 }function daysText(a){return a.length===7?'每天':'每周'+a.slice().sort((x,y)=>((x+6)%7)-((y+6)%7)).map(d=>'星期'+wd[d]).join('、')}
-function taskModal(s,id){const ex=id&&state.tasks.find(t=>t.id===id),t=ex||{name:'',icon:meta[s][1],days:[0,1,2,3,4,5,6],core:1};modal(`<h2>${ex?'编辑':'新增'}${meta[s][0]}任务</h2><div class="field"><label>任务名称</label><input id="tn" value="${esc(t.name)}"></div><div class="field"><label>图标</label><input id="ti" value="${esc(t.icon)}"></div><div class="field"><label>出现日期</label><div class="days-check">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="day" value="${d}" ${t.days.includes(d)?'checked':''}>周${wd[d]}</label>`).join('')}</div></div><div class="field"><label><input type="checkbox" id="tc" ${t.core?'checked':''}> 计入当天满额</label></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="saveTask">保存</button></div>`);$('#saveTask').onclick=()=>{const name=$('#tn').value.trim(),icon=$('#ti').value.trim()||meta[s][1],days=[...document.querySelectorAll('input[name="day"]:checked')].map(x=>+x.value);if(!name||!days.length)return toast('请填写任务名并至少选择一天');if(ex)Object.assign(ex,{name,icon,days,core:$('#tc').checked});else state.tasks.push({id:'custom-'+Date.now(),subject:s,name,icon,days,core:$('#tc').checked,builtin:0});save();closeModal();subject(s)}}
+function taskModal(s,id){const ex=id&&state.tasks.find(t=>t.id===id),t=ex||{name:'',icon:meta[s][1],days:[0,1,2,3,4,5,6],core:1};modal(`<h2>${ex?'编辑':'新增'}${meta[s][0]}任务</h2><div class="field"><label>任务名称</label><input id="tn" value="${esc(t.name)}"></div><div class="field"><label>图标</label><input id="ti" value="${esc(t.icon)}"></div><div class="field"><label>出现日期</label><div class="days-check">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="day" value="${d}" ${t.days.includes(d)?'checked':''}>周${wd[d]}</label>`).join('')}</div></div><div class="field"><label><input type="checkbox" id="tc" ${t.core?'checked':''}> 计入当天满额</label></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="saveTask">保存</button></div>`);$('#saveTask').onclick=()=>{const name=$('#tn').value.trim(),icon=$('#ti').value.trim()||meta[s][1],days=[...document.querySelectorAll('input[name="day"]:checked')].map(x=>+x.value);if(!name||!days.length)return toast('请填写任务名并至少选择一天');if(ex)Object.assign(ex,{name,icon,days,core:$('#tc').checked});else state.tasks.push({id:'custom-'+Date.now(),subject:s,name,icon,days,core:$('#tc').checked,builtin:0});syncTodayPlan();save();closeModal();subject(s)}}
 function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼商城</h1><p>学习赚小鱼，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
@@ -191,10 +239,7 @@ function renderPet(){
         <div class="pet-room-bg"><span class="window">☁️</span><span class="plant">🪴</span><span class="bed">🧺</span></div>
         <div class="pet-message" id="petMessage">${esc(state.pet.message)}</div>
         <div class="pet-effect-layer" id="petEffects"></div>
-        <div class="cat-avatar idle" id="catAvatar" role="img" aria-label="橘猫奶糕">
-          <div class="cat-head"><i class="ear l"></i><i class="ear r"></i><i class="face">😺</i></div>
-          <div class="cat-body-shape"></div><div class="cat-tail"></div>
-        </div>
+        <div class="cat-avatar idle" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
         <div class="pet-prop" id="petProp"></div>
       </div>
       <div class="card pet-control-card">
@@ -202,6 +247,7 @@ function renderPet(){
         <div class="pet-quick-actions">${quick.map(x=>`<button class="pet-quick" data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}</div>
         <div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div>
         <div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div>
+        <div class="sound-tip">🔊 摸摸会先轻声“喵”，再呼噜；若无声请检查手机静音模式</div>
         <h3>我的宠物用品</h3>
         <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼兑换吧。</div>'}</div>
       </div>
@@ -217,8 +263,8 @@ function petAction(action){
   if(petBusy)return;
   stopPetIdle();
   if(action==='pet'){
-    petBusy=true;setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
-    setTimeout(()=>{setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart h1">♥</span><span class="heart h2">♥</span>');soundPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')},500);return;
+    petBusy=true;unlockAudio();soundMeow();setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
+    setTimeout(()=>{setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');soundPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')},420);return;
   }
   if(action==='meow'){
     petBusy=true;setPetVisual('attention','奶糕听见你叫它，耳朵转向你。');
@@ -290,6 +336,19 @@ addEventListener('resize',syncLandscape,{passive:true});
 addEventListener('orientationchange',()=>setTimeout(syncLandscape,120),{passive:true});
 addEventListener('pageshow',()=>{syncLandscape();tryLandscapeLock()});
 document.addEventListener('pointerdown',tryLandscapeLock,{once:true,passive:true});
+document.addEventListener('pointerdown',unlockAudio,{passive:true});
 syncLandscape();
-renderNav();home();if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+renderNav();home();
+if('serviceWorker'in navigator)addEventListener('load',async()=>{
+  try{
+    const reg=await navigator.serviceWorker.register('./sw.js');
+    reg.update().catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!sessionStorage.getItem('miaomiao-sw-reloaded')){
+        sessionStorage.setItem('miaomiao-sw-reloaded','1');
+        location.reload();
+      }
+    });
+  }catch(e){}
+});
 })();
