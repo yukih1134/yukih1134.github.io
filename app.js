@@ -15,10 +15,10 @@ const defaults=[
 ];
 const fixedRewards=[{id:'tv',title:'看电视半小时',emoji:'📺',points:36},{id:'snack',title:'小零食',emoji:'🍪',points:60},{id:'toy',title:'小玩具',emoji:'🎁',points:84}];
 const shop=[
-['food-kibble','食物','猫粮','🥣',8,'feed'],['food-treat','食物','猫条','🐟',5,'feed'],['food-can','食物','主食罐头','🥫',10,'feed'],['food-freeze','食物','冻干','🍗',7,'feed'],
-['toy-wand','玩具','逗猫棒','🪶',8,'play'],['toy-ball','玩具','小球','⚽',6,'play'],['toy-scratch','玩具','猫抓板','🧶',12,'play'],['toy-box','玩具','纸箱','📦',4,'play'],
-['care-brush','洗漱','梳毛刷','🪮',6,'groom'],['care-bath','洗漱','洗护套装','🫧',12,'bath'],['care-towel','洗漱','小毛巾','🧺',5,'groom'],['care-nail','洗漱','指甲护理','✨',8,'groom'],
-['med-kit','医疗','护理包','🧰',10,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',14,'treat'],['med-rest','医疗','休息垫','🛏️',7,'rest']
+['food-kibble','食物','猫粮','🥣',5,'feed'],['food-treat','食物','猫条','🐟',3,'feed'],['food-can','食物','主食罐头','🥫',8,'feed'],['food-freeze','食物','冻干','🍗',6,'feed'],
+['toy-wand','玩具','逗猫棒','🪶',7,'play'],['toy-ball','玩具','小球','⚽',5,'play'],['toy-scratch','玩具','猫抓板','🧶',10,'play'],['toy-box','玩具','纸箱','📦',3,'play'],
+['care-brush','洗漱','梳毛刷','🪮',5,'groom'],['care-bath','洗漱','洗护套装','🫧',9,'bath'],['care-towel','洗漱','小毛巾','🧺',4,'groom'],['care-nail','洗漱','指甲护理','✨',7,'groom'],
+['med-kit','医疗','护理包','🧰',8,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',12,'treat'],['med-rest','医疗','休息垫','🛏️',6,'rest']
 ].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5]}));
 const petReactions={
 'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4},
@@ -39,8 +39,16 @@ const petReactions={
 'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5}
 };
 const init=()=>({points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:{mood:82,message:'等你完成任务，我们一起玩吧！'},customRewards:[],rewardLog:[],shopCat:'食物'});
-let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set();
+const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
+let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false;
 const save=()=>localStorage.setItem(K,JSON.stringify(state));
+if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
+  state.fish=(Number(state.fish)||0)+6;
+  state.pet.message='奶糕送来6条欢迎小鱼干，今天也一起加油吧！';
+  save();
+  localStorage.setItem(STARTER_FISH_KEY,'1');
+  starterFishGranted=true;
+}
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
 const rec=(k,d=new Date())=>{
@@ -192,7 +200,7 @@ function home(){
       </div>
       <div class="overview-stats">
         <div><span>积分</span><b>${state.points}</b></div>
-        <div><span>小鱼</span><b>${state.fish}</b></div>
+        <div><span>小鱼干</span><b>${state.fish}</b></div>
         <div><span>本周</span><b>${weekFull()}/7</b></div>
       </div>
       <div class="overview-next">
@@ -244,7 +252,7 @@ function taskCard(t){
 function complete(id){
   const r=rec(key(),new Date());if(r.completed.includes(id))return;
   r.completed.push(id);state.points+=2;state.fish++;state.pet.mood=Math.min(100,state.pet.mood+2);
-  state.pet.message='收到一条小鱼！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
+  state.pet.message='收到一条小鱼干！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
   soundCheckin();toast('完成啦！+2分 · 🐟 +1');
   const back=cur;
   if(meta[back])subject(back);else home();
@@ -307,7 +315,7 @@ function taskModal(s,id){
     syncTodayPlan();save();closeModal();subject(s)
   }
 }
-function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼商城</h1><p>学习赚小鱼，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
+function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼干商城</h1><p>学习赚小鱼干，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼干还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
   setPlaybackAudioSession();unlockAudio();
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
@@ -377,7 +385,7 @@ function renderPet(){
   ];
   page.innerHTML=`<div class="page-panel pet-page">
     <div class="section-hero">
-      <div><h1>🐾 奶糕的小屋</h1><p>完成任务获得小鱼，换用品后可以和奶糕真实感互动。</p></div>
+      <div><h1>🐾 奶糕的小屋</h1><p>完成任务获得小鱼干，换用品后可以和奶糕真实感互动。</p></div>
       <div class="pet-top-badges"><b>🐟 ${state.fish}</b><b>💗 ${state.pet.mood}%</b></div>
     </div>
     <div class="pet-large">
@@ -395,7 +403,7 @@ function renderPet(){
         <div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div>
         <div class="sound-tip">🔊 摸摸：真实猫叫 → 呼噜；“叫一声”会直接播放真实猫叫</div>
         <h3>我的宠物用品</h3>
-        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼兑换吧。</div>'}</div>
+        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
         <div class="audio-credit">猫叫：Dan Crosby / Wikimedia Commons（CC BY-SA 3.0） · 呼噜：Mysid / Public Domain</div>
       </div>
     </div>
@@ -522,6 +530,7 @@ document.addEventListener('visibilitychange',()=>{
   else if(!document.hidden&&cur==='pet')startPetIdle();
 });
 renderNav();home();
+if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
