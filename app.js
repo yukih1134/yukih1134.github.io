@@ -39,7 +39,7 @@ const petReactions={
 'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5}
 };
 const init=()=>({points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:{mood:82,message:'等你完成任务，我们一起玩吧！'},customRewards:[],rewardLog:[],shopCat:'食物'});
-let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petIdleTimer=null,petActionTimer=null,petBusy=false;
+let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set();
 const save=()=>localStorage.setItem(K,JSON.stringify(state));
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
@@ -102,16 +102,16 @@ function catSvg(kind='large'){
 
 
 let audioCtx=null;
-function setPlaybackAudioSession(){
+function setAudioSession(type='auto'){
   try{
-    if(navigator.audioSession && 'type' in navigator.audioSession){
-      navigator.audioSession.type='playback';
-    }
+    if(navigator.audioSession&&'type' in navigator.audioSession)navigator.audioSession.type=type;
   }catch(e){}
 }
-
+function setPlaybackAudioSession(){setAudioSession('playback')}
+function setDefaultAudioSession(){setAudioSession('auto')}
 function ctx(){try{return audioCtx||(audioCtx=new (window.AudioContext||window.webkitAudioContext)())}catch{return null}}
-async function unlockAudio(){setPlaybackAudioSession();const c=ctx();if(c&&c.state==='suspended'){try{await c.resume()}catch(e){}}}
+async function unlockAudio(){const c=ctx();if(c&&c.state==='suspended'){try{await c.resume()}catch(e){}}}
+function stopSynthAudio(){try{if(audioCtx&&audioCtx.state==='running')audioCtx.suspend()}catch(e){}}
 function sweep(from,to,dur=.28,gain=.035,delay=0){
   const c=ctx();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;
   o.type='triangle';o.frequency.setValueAtTime(from,t);o.frequency.exponentialRampToValueAtTime(Math.max(60,to),t+dur);
@@ -151,42 +151,53 @@ function mediaFor(name){
   const a=new Audio(catMediaSources[name]);a.preload='auto';a.playsInline=true;a.setAttribute('playsinline','');
   a.volume=name==='purr'?.32:.72;catMedia[name]=a;return a;
 }
+function stopCatMedia(){
+  Object.values(catMedia).forEach(a=>{try{a.pause();a.currentTime=0}catch(e){}});
+}
+function stopPetAudio(){
+  stopCatMedia();
+  stopSynthAudio();
+  setDefaultAudioSession();
+}
 async function playRealCat(name,maxMs){
   try{
-    setPlaybackAudioSession();
+    setPlaybackAudioSession();await unlockAudio();
     const a=mediaFor(name);a.pause();a.currentTime=0;
     await a.play();
-    if(maxMs)setTimeout(()=>{try{a.pause();a.currentTime=0}catch(e){}},maxMs);
+    if(maxMs)petDelay(()=>{try{a.pause();a.currentTime=0}catch(e){}},maxMs);
     return true;
   }catch(e){return false}
 }
-async function catMeow(){if(!(await playRealCat('meow',1300)))soundMeow()}
-async function catPurr(){if(!(await playRealCat('purr',2300)))soundPurr()}
+async function catMeow(){setPlaybackAudioSession();if(!(await playRealCat('meow',1300)))soundMeow()}
+async function catPurr(){setPlaybackAudioSession();if(!(await playRealCat('purr',2300)))soundPurr()}
 
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function renderNav(){nav.innerHTML=navs.map(([id,l,i])=>`<button class="nav-btn ${cur===id?'active':''}" data-p="${id}"><i>${i}</i>${l}</button>`).join('');nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>go(b.dataset.p))}
-function go(p){cur=p;clearInterval(timer);if(p!=='pet')stopPetIdle();renderNav();render()}
+function go(p){
+  const prev=cur;
+  if(prev==='pet'&&p!=='pet')stopPetSession();
+  cur=p;clearInterval(timer);renderNav();render();
+}
 function render(){({home,chinese:()=>subject('chinese'),math:()=>subject('math'),english:()=>subject('english'),sport:()=>subject('sport'),shop:renderShop,pet:renderPet,rewards:renderRewards,calendar:renderCalendar}[cur]||home)()}
 function home(){
   const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0;
-  const nextReward=fixedRewards.find(r=>state.points<r.points)||fixedRewards[fixedRewards.length-1];
+  const nextReward=fixedRewards.find(r=>state.points<r.points);
   page.innerHTML=`<div class="home-simple">
     <section class="card overview-card">
-      <div class="overview-main">
-        <div class="overview-progress">
-          <strong>${n}/${cc.length}</strong><span>今日完成</span>
-          <div class="overview-bar"><i style="width:${p}%"></i></div>
-        </div>
-        <div class="overview-stats">
-          <div><span>积分</span><b>${state.points}</b></div>
-          <div><span>小鱼</span><b>${state.fish}</b></div>
-          <div><span>本周</span><b>${weekFull()}/7</b></div>
-        </div>
+      <div class="overview-progress">
+        <strong>${n}/${cc.length}</strong>
+        <span>今日完成</span>
+        <div class="overview-bar"><i style="width:${p}%"></i></div>
       </div>
-      <div class="overview-footer">
-        <span>${d.getMonth()+1}月${d.getDate()}日 · 星期${wd[d.getDay()]}</span>
-        <button class="plain-link" data-go="rewards">下一奖励 ${nextReward.points}分 ›</button>
+      <div class="overview-stats">
+        <div><span>积分</span><b>${state.points}</b></div>
+        <div><span>小鱼</span><b>${state.fish}</b></div>
+        <div><span>本周</span><b>${weekFull()}/7</b></div>
+      </div>
+      <div class="overview-next">
+        <span>${d.getMonth()+1}月${d.getDate()}日</span>
+        <button class="plain-link" data-go="rewards">${nextReward?'下一奖励 '+nextReward.points+'分':'已有奖励可兑换'} ›</button>
       </div>
     </section>
 
@@ -194,23 +205,19 @@ function home(){
       <div class="home-pet-visual">${catSvg('mini')}</div>
       <div class="home-pet-info">
         <div class="home-pet-title"><div><b>奶糕</b><span>我的橘猫伙伴</span></div><button class="plain-link" data-go="pet">去互动 ›</button></div>
+        <div class="home-pet-meta"><span>💗 ${state.pet.mood}%</span><span>🐟 ${state.fish}</span></div>
         <p>${esc(state.pet.message)}</p>
-        <div class="home-pet-meta">
-          <span>💗 ${state.pet.mood}%</span>
-          <span>🐟 ${state.fish}</span>
-        </div>
       </div>
     </section>
 
     <section class="card task-board-card">
       <div class="board-head">
-        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成 · 每项 +2分 +1🐟</span></div>
-        <button class="plain-link" data-go="calendar">本周 ${weekFull()}/7 ›</button>
+        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成</span></div>
+        <button class="plain-link" data-go="calendar">查看日历 ›</button>
       </div>
       <div class="task-board">${tt.map(boardTaskCard).join('')}</div>
     </section>
   </div>`;
-
   bindGo();
   page.querySelectorAll('[data-board-check]').forEach(b=>b.onclick=()=>complete(b.dataset.boardCheck));
   clearInterval(timer);
@@ -302,9 +309,36 @@ function taskModal(s,id){
 }
 function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼商城</h1><p>学习赚小鱼，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
+  setPlaybackAudioSession();unlockAudio();
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
 }
+function petDelay(fn,ms){
+  const token=petSession;
+  const id=setTimeout(()=>{
+    petTimers.delete(id);
+    if(cur==='pet'&&token===petSession)fn();
+  },ms);
+  petTimers.add(id);
+  return id;
+}
+function clearPetTimers(){
+  petTimers.forEach(id=>clearTimeout(id));
+  petTimers.clear();
+}
+function startPetSession(){
+  petSession++;
+  clearPetTimers();
+  stopPetAudio();
+  petBusy=false;
+}
+function stopPetSession(){
+  petSession++;
+  clearPetTimers();
+  petBusy=false;
+  stopPetAudio();
+}
 function setPetVisual(cls,text,fx='',prop=''){
+  if(cur!=='pet')return;
   const a=$('#catAvatar'),m=$('#petMessage'),f=$('#petEffects'),p=$('#petProp');
   if(!a)return;
   a.className='cat-avatar '+cls;
@@ -312,17 +346,15 @@ function setPetVisual(cls,text,fx='',prop=''){
   state.pet.message=text;save();
 }
 function finishPetAction(text){
-  clearTimeout(petActionTimer);
-  petActionTimer=setTimeout(()=>{
+  petDelay(()=>{
     petBusy=false;
-    if(cur==='pet'&&$('#catAvatar')){setPetVisual('idle',text||state.pet.message);startPetIdle()}
-  },1300)
+    if($('#catAvatar')){setPetVisual('idle',text||state.pet.message);startPetIdle()}
+  },1100)
 }
 function startPetIdle(){
-  stopPetIdle();
   if(cur!=='pet'||petBusy||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const schedule=()=>{petIdleTimer=setTimeout(()=>{
-    if(cur!=='pet'||petBusy||!$('#catAvatar'))return;
+  const schedule=()=>petDelay(()=>{
+    if(petBusy||!$('#catAvatar'))return;
     const idles=[
       ['idle-look','奶糕看看窗外，又回头看向你。'],
       ['idle-blink','奶糕慢慢眨了眨眼。'],
@@ -331,13 +363,14 @@ function startPetIdle(){
     ];
     const x=idles[Math.floor(Math.random()*idles.length)];
     setPetVisual(x[0],x[1]);
-    setTimeout(()=>{if(cur==='pet'&&!petBusy&&$('#catAvatar'))setPetVisual('idle','奶糕安静地待在小屋里。')},1200);
+    petDelay(()=>{if(!petBusy&&$('#catAvatar'))setPetVisual('idle','奶糕安静地待在小屋里。')},1100);
     schedule();
-  },5200+Math.random()*3800)};
+  },5200+Math.random()*3800);
   schedule();
 }
-function stopPetIdle(){clearTimeout(petIdleTimer);clearTimeout(petActionTimer);petIdleTimer=null}
+function stopPetIdle(){clearPetTimers()}
 function renderPet(){
+  startPetSession();
   const own=shop.filter(i=>(state.inventory[i.id]||0)>0);
   const quick=[
     ['feed','🥣','喂食'],['play','🪶','玩耍'],['bath','🫧','洗澡'],['treat','🩺','护理'],['pet','🤚','摸摸'],['meow','🔊','叫一声']
@@ -371,53 +404,56 @@ function renderPet(){
   const pending=sessionStorage.getItem('miaomiao-pet-action');sessionStorage.removeItem('miaomiao-pet-action');
   page.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>petAction(b.dataset.act));
   page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
-  if(pending)setTimeout(()=>petAction(pending),120);else startPetIdle();
+  if(pending)petDelay(()=>petAction(pending),120);else startPetIdle();
 }
 function petAction(action){
-  if(petBusy)return;
-  stopPetIdle();
+  if(cur!=='pet'||petBusy)return;
+  clearPetTimers();
   if(action==='pet'){
-    petBusy=true;unlockAudio();catMeow();setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
-    setTimeout(()=>{setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');catPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')},620);return;
+    petBusy=true;setPlaybackAudioSession();unlockAudio();catMeow();setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
+    petDelay(()=>{
+      setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');
+      catPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')
+    },620);return;
   }
   if(action==='meow'){
-    petBusy=true;unlockAudio();catMeow();setPetVisual('meowing','奶糕抬头：喵～','<span class="sound-wave">)))</span>');
+    petBusy=true;setPlaybackAudioSession();unlockAudio();catMeow();
+    setPetVisual('meowing','奶糕抬头：喵～','<span class="sound-wave">)))</span>');
     finishPetAction('奶糕叫完一声，又安静下来。');return;
   }
-  if(action==='feed'){const item=findOwnedBy('feed');if(!item)return petNeed('食物','feed');usePetItem(item.id);return}
-  if(action==='play'){const item=findOwnedBy('play');if(!item)return petNeed('玩具','play');usePetItem(item.id);return}
-  if(action==='bath'){const item=findOwnedBy('bath');if(!item)return petNeed('洗澡用品','bath');usePetItem(item.id);return}
-  if(action==='treat'){const item=findOwnedBy('treat');if(!item)return petNeed('护理用品','treat');usePetItem(item.id)}
+  if(action==='feed'){const item=findOwnedBy('feed');if(!item)return petNeed('食物');usePetItem(item.id);return}
+  if(action==='play'){const item=findOwnedBy('play');if(!item)return petNeed('玩具');usePetItem(item.id);return}
+  if(action==='bath'){const item=findOwnedBy('bath');if(!item)return petNeed('洗澡用品');usePetItem(item.id);return}
+  if(action==='treat'){const item=findOwnedBy('treat');if(!item)return petNeed('护理用品');usePetItem(item.id)}
 }
 function findOwnedBy(action){return shop.find(i=>i.action===action&&(state.inventory[i.id]||0)>0)}
-function petNeed(name,action){
-  state.pet.message='还缺'+name+'，去商城准备一下吧～';save();catMeow();toast('需要先兑换'+name);
+function petNeed(name){
+  if(cur!=='pet')return;
+  state.pet.message='还缺'+name+'，去商城准备一下吧～';save();setPlaybackAudioSession();catMeow();toast('需要先兑换'+name);
   const m=$('#petMessage');if(m)m.textContent=state.pet.message;
 }
 function usePetItem(id){
-  if(petBusy)return;
+  if(cur!=='pet'||petBusy)return;
   const i=shop.find(x=>x.id===id),r=petReactions[id];
   if(!i||!state.inventory[i.id]||!r)return;
-  petBusy=true;stopPetIdle();
+  petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
   state.inventory[i.id]--;
   setPetVisual('attention',r.notice,'',r.prop);
   soundRustle();
-  setTimeout(()=>{
+  petDelay(()=>{
     state.pet.mood=Math.min(100,state.pet.mood+(r.mood||3));
     setPetVisual(r.cls,r.text,r.fx,r.prop);
-    playPetSound(r.sound);
-    save();toast(i.name+' 已使用');
-    setTimeout(()=>{
+    playPetSound(r.sound);save();toast(i.name+' 已使用');
+    petDelay(()=>{
       let end='奶糕用完'+i.name+'，舒服地坐了下来。';
       if(i.action==='feed')end='奶糕吃完后舔舔嘴巴，满足地坐在旁边。';
       if(i.action==='play')end='奶糕玩累了一点，趴下来休息。';
       if(id==='care-bath')end='奶糕甩了甩毛，终于洗干净啦。';
       if(id==='med-rest')end='奶糕已经睡着了，呼吸慢慢变得平稳。';
       setPetVisual(id==='med-rest'?'sleeping':'happy',end,'',id==='med-rest'?r.prop:'');
-      finishPetAction(end);
-      if(cur==='pet')renderPetInventoryOnly();
-    },2100);
-  },650);
+      finishPetAction(end);renderPetInventoryOnly();
+    },1900);
+  },550);
 }
 function renderPetInventoryOnly(){
   const box=document.querySelector('.pet-inventory');if(!box)return;
@@ -480,9 +516,11 @@ addEventListener('pageshow',()=>{syncLandscape();tryLandscapeLock()});
 document.addEventListener('pointerdown',tryLandscapeLock,{once:true,passive:true});
 document.addEventListener('pointerdown',unlockAudio,{passive:true});
 syncLandscape();
-setPlaybackAudioSession();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)setPlaybackAudioSession()});
-addEventListener('pageshow',setPlaybackAudioSession,{passive:true});
+setDefaultAudioSession();
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&cur==='pet')stopPetSession();
+  else if(!document.hidden&&cur==='pet')startPetIdle();
+});
 renderNav();home();
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
