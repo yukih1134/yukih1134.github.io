@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#fffaf5">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="喵喵打卡">
+<meta name="format-detection" content="telephone=no">
+<title>喵喵的打卡工作台</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar"><nav id="nav"></nav></aside>
+  <main class="workspace">
+    <header class="hero" aria-label="喵喵的打卡工作台">
+      <div class="hero-copy"><h1>喵喵的打卡工作台</h1><p>晚上好，今天也要加油哦！</p></div>
+      <div class="pig-family" aria-hidden="true"><span>🐷</span><span>🐷</span><span>🐷</span><span>🐷</span></div>
+      <div class="cloud c1"></div><div class="cloud c2"></div><div class="hill h1"></div><div class="hill h2"></div>
+    </header>
+    <section id="page" class="page" aria-live="polite"></section>
+  </main>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="modalRoot"></div>
+<input id="importInput" type="file" accept="application/json" hidden>
+<script src="app.js"></script>
+</body>
+</html>
