@@ -13,7 +13,7 @@ const defaults=[
 {id:'sp-badminton',subject:'sport',name:'羽毛球',icon:'🏸',days:[0,5],core:1,builtin:1},
 {id:'sp-free',subject:'sport',name:'自由运动',icon:'🌿',days:[6],core:1,builtin:1}
 ];
-const fixedRewards=[{id:'tv',title:'看电视半小时',emoji:'📺',points:36,days:3},{id:'snack',title:'小零食',emoji:'🍪',points:60,days:5},{id:'toy',title:'小玩具',emoji:'🎁',points:84,days:7}];
+const fixedRewards=[{id:'tv',title:'看电视半小时',emoji:'📺',points:36},{id:'snack',title:'小零食',emoji:'🍪',points:60},{id:'toy',title:'小玩具',emoji:'🎁',points:84}];
 const shop=[
 ['food-kibble','食物','猫粮','🥣',8,'feed'],['food-treat','食物','猫条','🐟',5,'feed'],['food-can','食物','主食罐头','🥫',10,'feed'],['food-freeze','食物','冻干','🍗',7,'feed'],
 ['toy-wand','玩具','逗猫棒','🪶',8,'play'],['toy-ball','玩具','小球','⚽',6,'play'],['toy-scratch','玩具','猫抓板','🧶',12,'play'],['toy-box','玩具','纸箱','📦',4,'play'],
@@ -42,7 +42,7 @@ const init=()=>({points:0,fish:0,tasks:structuredClone(defaults),records:{},inve
 let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petIdleTimer=null,petActionTimer=null,petBusy=false;
 const save=()=>localStorage.setItem(K,JSON.stringify(state));
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d).filter(t=>t.core),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
+const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
 const rec=(k,d=new Date())=>{
     if(!state.records[k]) state.records[k]={completed:[],planned:core(d).map(t=>t.id)};
     if(!Array.isArray(state.records[k].completed)) state.records[k].completed=[];
@@ -58,6 +58,16 @@ const weekStart=(d=new Date())=>{let x=new Date(d),n=(x.getDay()+6)%7;x.setDate(
 const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{let d=new Date(s);d.setDate(s.getDate()+i);return d})};
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function taskRewardIcons(){
+  return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加1">
+    <span class="task-reward-chip task-reward-point" title="积分 +2">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6.5l1.7 3.2 3.6.5-2.6 2.5.6 3.6-3.3-1.7-3.3 1.7.6-3.6-2.6-2.5 3.6-.5z"/></svg><b>+2</b>
+    </span>
+    <span class="task-reward-chip task-reward-fish" title="小鱼干 +1">
+      <svg viewBox="0 0 28 20" aria-hidden="true"><path d="M3 10c4-5 9-7 14-5 2 .8 3.8 2.2 5 4l4-3v8l-4-3c-1.2 1.8-3 3.2-5 4-5 2-10 0-14-5z"/><circle cx="17" cy="8" r="1.2"/></svg><b>+1</b>
+    </span>
+  </span>`
+}
 function catSvg(kind='large'){
   return `<svg class="cat-svg ${kind}" viewBox="0 0 260 200" aria-hidden="true">
     <g class="cat-tail-g"><path class="cat-tail-shape" d="M184 137 C238 126 246 86 219 73 C203 65 188 77 198 91 C207 104 226 93 224 78" fill="none" stroke="#d77a32" stroke-width="22" stroke-linecap="round"/></g>
@@ -207,13 +217,23 @@ function home(){
 }
 function boardTaskCard(t){
   const ok=done(t.id),m=meta[t.subject]||['任务','•','#f5ecef'];
-  return `<button class="board-task ${ok?'done':''}" data-board-check="${t.id}" ${ok?'disabled':''}>
-    <span class="board-task-icon" style="--dot:${m[2]}">${t.icon}</span>
-    <span class="board-task-copy"><b>${esc(t.name)}</b><small>${m[0]} · ${ok?'已完成':'待完成'}</small></span>
-    <span class="board-check">${ok?'✓':'+'}</span>
+  return `<button class="board-task ${ok?'done':''}" data-board-check="${t.id}" ${ok?'disabled':''} aria-label="${esc(t.name)}，${ok?'已完成':'点击完成'}">
+    <span class="board-task-icon-stack">
+      <span class="board-task-icon" style="--dot:${m[2]}">${t.icon}</span>
+      ${taskRewardIcons()}
+    </span>
+    <span class="board-task-copy"><b>${esc(t.name)}</b><small>${m[0]}</small></span>
+    <span class="board-check" aria-hidden="true">${ok?'✓':''}</span>
   </button>`
 }
-function taskCard(t){const d=done(t.id);return `<div class="task-card ${d?'done':''}"><div class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</div><div><div class="task-name">${esc(t.name)}</div><div class="task-status">${d?'今天已完成 ✓':'今日未完成'}</div></div><button class="check-btn ${d?'done':''}" data-check="${t.id}" ${d?'disabled':''}>${d?'已完成 ✓':'完成打卡 +2分'}</button></div>`}
+function taskCard(t){
+  const ok=done(t.id);
+  return `<button class="task-card simple-task-card ${ok?'done':''}" data-check="${t.id}" ${ok?'disabled':''}>
+    <span class="simple-task-icon-stack"><span class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</span>${taskRewardIcons()}</span>
+    <span class="task-name">${esc(t.name)}</span>
+    <span class="simple-check">${ok?'✓':''}</span>
+  </button>`
+}
 function complete(id){
   const r=rec(key(),new Date());if(r.completed.includes(id))return;
   r.completed.push(id);state.points+=2;state.fish++;state.pet.mood=Math.min(100,state.pet.mood+2);
@@ -230,25 +250,26 @@ function subject(s){
     <div class="subject-clean-head">
       <div class="subject-clean-title">
         <span class="subject-clean-icon" style="--subject-bg:${m[2]}">${m[1]}</span>
-        <div><h1>${m[0]}</h1><p>今日 ${doneCount}/${todayList.length} 已完成 · 这里只记录打卡，不放学习内容</p></div>
+        <div><h1>${m[0]}</h1><p>今日 ${doneCount}/${todayList.length} 已完成</p></div>
       </div>
       <button class="primary-btn" data-add>＋ 新增任务</button>
     </div>
-
     <div class="subject-clean-grid">
       ${arr.map(t=>{
         const scheduled=t.days.includes(today.getDay()),ok=scheduled&&done(t.id);
-        return `<article class="subject-clean-task ${ok?'done':''}">
-          <div class="subject-clean-main">
-            <span class="subject-clean-task-icon" style="--subject-bg:${m[2]}">${t.icon}</span>
-            <div class="subject-clean-copy">
-              <div class="subject-clean-name">${esc(t.name)}</div>
-              <div class="subject-clean-meta">${daysText(t.days)} · ${t.core?'计入满额':'额外任务'}</div>
-            </div>
-          </div>
-          <div class="subject-clean-actions">
-            <span class="subject-clean-state ${scheduled?(ok?'done':'pending'):'off'}">${scheduled?(ok?'已完成 ✓':'今日待完成'):'今日不安排'}</span>
-            ${scheduled?`<button class="subject-check-btn ${ok?'done':''}" data-subcheck="${t.id}" ${ok?'disabled':''}>${ok?'✓':'打卡 +2'}</button>`:''}
+        return `<article class="subject-min-task ${ok?'done':''} ${scheduled?'':'not-today'}">
+          <button class="subject-min-hit" ${scheduled&&!ok?`data-subcheck="${t.id}"`:''} ${ok||!scheduled?'disabled':''} aria-label="${esc(t.name)}，${ok?'已完成':scheduled?'点击完成':'今天不安排'}">
+            <span class="subject-min-icon-stack">
+              <span class="subject-clean-task-icon" style="--subject-bg:${m[2]}">${t.icon}</span>
+              ${taskRewardIcons()}
+            </span>
+            <span class="subject-min-copy">
+              <b>${esc(t.name)}</b>
+              <small>${daysText(t.days)}</small>
+            </span>
+            <span class="subject-min-check" aria-hidden="true">${ok?'✓':''}</span>
+          </button>
+          <div class="subject-min-tools">
             <button class="subject-edit-btn" data-edit="${t.id}" aria-label="编辑${esc(t.name)}">编辑</button>
             ${t.builtin?'':`<button class="subject-delete-btn" data-del="${t.id}" aria-label="删除${esc(t.name)}">删除</button>`}
           </div>
@@ -257,16 +278,28 @@ function subject(s){
       <button class="subject-clean-add" data-add>＋ 新增${m[0]}任务</button>
     </div>
   </div>`;
-
   page.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>taskModal(s));
-  page.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>taskModal(s,b.dataset.edit));
+  page.querySelectorAll('[data-edit]').forEach(b=>b.onclick=e=>{e.stopPropagation();taskModal(s,b.dataset.edit)});
   page.querySelectorAll('[data-subcheck]').forEach(b=>b.onclick=()=>complete(b.dataset.subcheck));
-  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
-    state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);syncTodayPlan();save();subject(s)
+  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);syncTodayPlan();save();subject(s)
   });
 }
 function daysText(a){return a.length===7?'每天':'每周'+a.slice().sort((x,y)=>((x+6)%7)-((y+6)%7)).map(d=>'星期'+wd[d]).join('、')}
-function taskModal(s,id){const ex=id&&state.tasks.find(t=>t.id===id),t=ex||{name:'',icon:meta[s][1],days:[0,1,2,3,4,5,6],core:1};modal(`<h2>${ex?'编辑':'新增'}${meta[s][0]}任务</h2><div class="field"><label>任务名称</label><input id="tn" value="${esc(t.name)}"></div><div class="field"><label>图标</label><input id="ti" value="${esc(t.icon)}"></div><div class="field"><label>出现日期</label><div class="days-check">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="day" value="${d}" ${t.days.includes(d)?'checked':''}>周${wd[d]}</label>`).join('')}</div></div><div class="field"><label><input type="checkbox" id="tc" ${t.core?'checked':''}> 计入当天满额</label></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="saveTask">保存</button></div>`);$('#saveTask').onclick=()=>{const name=$('#tn').value.trim(),icon=$('#ti').value.trim()||meta[s][1],days=[...document.querySelectorAll('input[name="day"]:checked')].map(x=>+x.value);if(!name||!days.length)return toast('请填写任务名并至少选择一天');if(ex)Object.assign(ex,{name,icon,days,core:$('#tc').checked});else state.tasks.push({id:'custom-'+Date.now(),subject:s,name,icon,days,core:$('#tc').checked,builtin:0});syncTodayPlan();save();closeModal();subject(s)}}
+function taskModal(s,id){
+  const ex=id&&state.tasks.find(t=>t.id===id),t=ex||{name:'',icon:meta[s][1],days:[0,1,2,3,4,5,6],core:1};
+  modal(`<h2>${ex?'编辑':'新增'}${meta[s][0]}任务</h2>
+    <div class="field"><label>任务名称</label><input id="tn" value="${esc(t.name)}"></div>
+    <div class="field"><label>图标</label><input id="ti" value="${esc(t.icon)}"></div>
+    <div class="field"><label>出现日期</label><div class="days-check">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="day" value="${d}" ${t.days.includes(d)?'checked':''}>周${wd[d]}</label>`).join('')}</div></div>
+    <div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="saveTask">保存</button></div>`);
+  $('#saveTask').onclick=()=>{
+    const name=$('#tn').value.trim(),icon=$('#ti').value.trim()||meta[s][1],days=[...document.querySelectorAll('input[name="day"]:checked')].map(x=>+x.value);
+    if(!name||!days.length)return toast('请填写任务名并至少选择一天');
+    if(ex)Object.assign(ex,{name,icon,days,core:1});else state.tasks.push({id:'custom-'+Date.now(),subject:s,name,icon,days,core:1,builtin:0});
+    syncTodayPlan();save();closeModal();subject(s)
+  }
+}
 function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼商城</h1><p>学习赚小鱼，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
@@ -392,8 +425,36 @@ function renderPetInventoryOnly(){
   box.innerHTML=own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">用品已经用完，去商城补充吧。</div>';
   box.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
 }
-function renderRewards(){const f=weekFull(),all=[...fixedRewards,...state.customRewards];page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🎁 奖励中心</h1><p>当前 ${state.points}分 · 本周满额 ${f}/7天</p></div><button class="primary-btn" id="addReward">＋ 自定义奖励</button></div><div class="rewards-grid">${all.map(r=>{let u=f>=(r.days||0),e=state.points>=r.points;return `<div class="reward-card ${u?'':'locked'}"><div class="reward-emoji">${r.emoji||'⭐'}</div><h3>${esc(r.title)}</h3><p>${r.points}积分${r.days?' · 满额'+r.days+'天解锁':' · 自定义'}</p><button class="primary-btn" data-red="${r.id}" ${(!u||!e)?'disabled':''}>${!u?'未解锁':!e?'积分不足':'兑换'}</button></div>`}).join('')}</div></div>`;$('#addReward').onclick=()=>modal('<h2>新增自定义奖励</h2><div class="field"><label>奖励名称</label><input id="rn"></div><div class="field"><label>所需积分</label><input id="rp" type="number" value="100"></div><div class="field"><label>图标</label><input id="re" value="⭐"></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="rs">保存</button></div>');setTimeout(()=>{if($('#rs'))$('#rs').onclick=()=>{let title=$('#rn').value.trim(),points=+$('#rp').value,emoji=$('#re').value||'⭐';if(!title||points<2)return toast('请填写有效内容');state.customRewards.push({id:'r-'+Date.now(),title,points,emoji,days:0});save();closeModal();renderRewards()}},0);page.querySelectorAll('[data-red]').forEach(b=>b.onclick=()=>{const r=all.find(x=>x.id===b.dataset.red);if(!r||state.points<r.points||f<(r.days||0))return;state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});save();toast('已兑换：'+r.title);renderRewards()})}
-function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成满额打卡</p><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
+function renderRewards(){
+  const all=[...fixedRewards,...state.customRewards];
+  page.innerHTML=`<div class="page-panel">
+    <div class="section-hero">
+      <div><h1>🎁 奖励中心</h1><p>当前 ${state.points} 分 · 积分达到即可兑换</p></div>
+      <button class="primary-btn" id="addReward">＋ 自定义奖励</button>
+    </div>
+    <div class="rewards-grid">${all.map(r=>{
+      const enough=state.points>=r.points;
+      return `<div class="reward-card ${enough?'':'locked'}">
+        <div class="reward-emoji">${r.emoji||'⭐'}</div>
+        <h3>${esc(r.title)}</h3>
+        <p>${r.points} 积分</p>
+        <button class="primary-btn" data-red="${r.id}" ${enough?'':'disabled'}>${enough?'兑换':'积分不足'}</button>
+      </div>`
+    }).join('')}</div>
+  </div>`;
+  $('#addReward').onclick=()=>modal('<h2>新增自定义奖励</h2><div class="field"><label>奖励名称</label><input id="rn"></div><div class="field"><label>所需积分</label><input id="rp" type="number" value="100"></div><div class="field"><label>图标</label><input id="re" value="⭐"></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="rs">保存</button></div>');
+  setTimeout(()=>{if($('#rs'))$('#rs').onclick=()=>{
+    let title=$('#rn').value.trim(),points=+$('#rp').value,emoji=$('#re').value||'⭐';
+    if(!title||points<2)return toast('请填写有效内容');
+    state.customRewards.push({id:'r-'+Date.now(),title,points,emoji});save();closeModal();renderRewards()
+  }},0);
+  page.querySelectorAll('[data-red]').forEach(b=>b.onclick=()=>{
+    const r=all.find(x=>x.id===b.dataset.red);
+    if(!r||state.points<r.points)return;
+    state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});save();toast('已兑换：'+r.title);renderRewards()
+  })
+}
+function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成全部任务</p><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
 $('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());state={...init(),...d};save();toast('备份已恢复');render()}catch{toast('备份文件无法读取')}e.target.value=''};
 function bindGo(){page.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go))}
 function modal(h){$('#modalRoot').innerHTML='<div class="modal-backdrop"><div class="modal">'+h+'</div></div>';document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal)}
