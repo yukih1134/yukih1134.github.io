@@ -61,5 +61,25 @@ $('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files
 function bindGo(){page.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go))}
 function modal(h){$('#modalRoot').innerHTML='<div class="modal-backdrop"><div class="modal">'+h+'</div></div>';document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal)}
 function closeModal(){$('#modalRoot').innerHTML=''}
+function isPhoneLike(){return matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<600}
+let landscapeFlip=localStorage.getItem('miaomiao-landscape-side')==='-90',hintTimer=0;
+async function tryLandscapeLock(){try{if(screen.orientation&&typeof screen.orientation.lock==='function')await screen.orientation.lock('landscape')}catch(e){}}
+function syncLandscape(){
+  const forced=isPhoneLike()&&innerHeight>innerWidth;
+  document.body.classList.toggle('force-landscape',forced);
+  document.body.classList.toggle('flip-landscape',forced&&landscapeFlip);
+  if(forced&&!sessionStorage.getItem('miaomiao-landscape-hint')){
+    document.body.classList.add('landscape-hint-on');
+    clearTimeout(hintTimer);
+    hintTimer=setTimeout(()=>document.body.classList.remove('landscape-hint-on'),4200);
+    sessionStorage.setItem('miaomiao-landscape-hint','1');
+  }
+}
+$('#rotateSide').onclick=()=>{landscapeFlip=!landscapeFlip;localStorage.setItem('miaomiao-landscape-side',landscapeFlip?'-90':'90');syncLandscape()};
+addEventListener('resize',syncLandscape,{passive:true});
+addEventListener('orientationchange',()=>setTimeout(syncLandscape,120),{passive:true});
+addEventListener('pageshow',()=>{syncLandscape();tryLandscapeLock()});
+document.addEventListener('pointerdown',tryLandscapeLock,{once:true,passive:true});
+syncLandscape();
 renderNav();home();if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 })();
