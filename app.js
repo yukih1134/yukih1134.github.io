@@ -216,40 +216,47 @@ function complete(id){
 function weekMini(){let now=new Date();now.setHours(0,0,0,0);return `<div class="week-days">${weekDates().map(d=>{const f=d>now,ok=!f&&full(d),today=key(d)===key(now);return `<div><div class="weekday">${['一','二','三','四','五','六','日'][(d.getDay()+6)%7]}</div><div class="day-dot ${f?'future':ok?'done':'missed'} ${today?'today':''}">${ok?'✓':f?'':'·'}</div></div>`}).join('')}</div><div class="legend">绿色已打卡 · 粉色未打卡 · 灰色未到时间</div>`}
 function subject(s){
   const m=meta[s],arr=state.tasks.filter(t=>t.subject===s),today=new Date(),todayList=arr.filter(t=>t.days.includes(today.getDay()));
-  page.innerHTML=`<div class="page-panel subject-panel">
-    <div class="section-hero subject-hero">
-      <div><h1>${m[1]} ${m[0]}</h1><p>今日 ${todayList.length} 项 · 点击任务即可打卡；这里只记录完成，不放学习内容。</p></div>
+  const doneCount=todayList.filter(t=>done(t.id)).length;
+  page.innerHTML=`<div class="page-panel subject-clean">
+    <div class="subject-clean-head">
+      <div class="subject-clean-title">
+        <span class="subject-clean-icon" style="--subject-bg:${m[2]}">${m[1]}</span>
+        <div><h1>${m[0]}</h1><p>今日 ${doneCount}/${todayList.length} 已完成 · 这里只记录打卡，不放学习内容</p></div>
+      </div>
       <button class="primary-btn" data-add>＋ 新增任务</button>
     </div>
-    <div class="subject-summary">
-      <div><b>今日任务</b><span>${todayList.filter(t=>done(t.id)).length}/${todayList.length} 已完成</span></div>
-      <div class="subject-mini-tasks">${todayList.length?todayList.map(t=>{
-        const ok=done(t.id);
-        return `<button class="subject-mini ${ok?'done':''}" data-subcheck="${t.id}" ${ok?'disabled':''}><span>${t.icon}</span><b>${esc(t.name)}</b><small>${ok?'已完成 ✓':'点我打卡 +2'}</small></button>`
-      }).join(''):'<div class="empty-note">今天没有安排这个科目的任务</div>'}</div>
-    </div>
-    <div class="grid-cards subject-all">
+
+    <div class="subject-clean-grid">
       ${arr.map(t=>{
         const scheduled=t.days.includes(today.getDay()),ok=scheduled&&done(t.id);
-        return `<div class="feature-card subject-task-card ${ok?'is-done':''}">
-          <div class="feature-top"><div class="feature-icon" style="background:${m[2]}">${t.icon}</div><span class="chip">${t.core?'计入满额':'加分任务'}</span></div>
-          <h3>${esc(t.name)}</h3><p>${daysText(t.days)}</p>
-          <div class="task-state-line">${scheduled?(ok?'✅ 今天已完成':'○ 今天待完成'):'— 今天不安排'}</div>
-          <div class="card-actions">
-            ${scheduled?`<button class="primary-btn compact" data-subcheck="${t.id}" ${ok?'disabled':''}>${ok?'已完成':'完成打卡 +2'}</button>`:''}
-            <button class="secondary-btn" data-edit="${t.id}">编辑</button>
-            ${t.builtin?'':`<button class="danger-btn" data-del="${t.id}">删除</button>`}
+        return `<article class="subject-clean-task ${ok?'done':''}">
+          <div class="subject-clean-main">
+            <span class="subject-clean-task-icon" style="--subject-bg:${m[2]}">${t.icon}</span>
+            <div class="subject-clean-copy">
+              <div class="subject-clean-name">${esc(t.name)}</div>
+              <div class="subject-clean-meta">${daysText(t.days)} · ${t.core?'计入满额':'额外任务'}</div>
+            </div>
           </div>
-        </div>`
+          <div class="subject-clean-actions">
+            <span class="subject-clean-state ${scheduled?(ok?'done':'pending'):'off'}">${scheduled?(ok?'已完成 ✓':'今日待完成'):'今日不安排'}</span>
+            ${scheduled?`<button class="subject-check-btn ${ok?'done':''}" data-subcheck="${t.id}" ${ok?'disabled':''}>${ok?'✓':'打卡 +2'}</button>`:''}
+            <button class="subject-edit-btn" data-edit="${t.id}" aria-label="编辑${esc(t.name)}">编辑</button>
+            ${t.builtin?'':`<button class="subject-delete-btn" data-del="${t.id}" aria-label="删除${esc(t.name)}">删除</button>`}
+          </div>
+        </article>`
       }).join('')}
-      <button class="feature-card add-card" data-add>＋ 新增${m[0]}任务</button>
+      <button class="subject-clean-add" data-add>＋ 新增${m[0]}任务</button>
     </div>
   </div>`;
+
   page.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>taskModal(s));
   page.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>taskModal(s,b.dataset.edit));
   page.querySelectorAll('[data-subcheck]').forEach(b=>b.onclick=()=>complete(b.dataset.subcheck));
-  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);syncTodayPlan();save();subject(s)});
-}function daysText(a){return a.length===7?'每天':'每周'+a.slice().sort((x,y)=>((x+6)%7)-((y+6)%7)).map(d=>'星期'+wd[d]).join('、')}
+  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);syncTodayPlan();save();subject(s)
+  });
+}
+function daysText(a){return a.length===7?'每天':'每周'+a.slice().sort((x,y)=>((x+6)%7)-((y+6)%7)).map(d=>'星期'+wd[d]).join('、')}
 function taskModal(s,id){const ex=id&&state.tasks.find(t=>t.id===id),t=ex||{name:'',icon:meta[s][1],days:[0,1,2,3,4,5,6],core:1};modal(`<h2>${ex?'编辑':'新增'}${meta[s][0]}任务</h2><div class="field"><label>任务名称</label><input id="tn" value="${esc(t.name)}"></div><div class="field"><label>图标</label><input id="ti" value="${esc(t.icon)}"></div><div class="field"><label>出现日期</label><div class="days-check">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="day" value="${d}" ${t.days.includes(d)?'checked':''}>周${wd[d]}</label>`).join('')}</div></div><div class="field"><label><input type="checkbox" id="tc" ${t.core?'checked':''}> 计入当天满额</label></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="saveTask">保存</button></div>`);$('#saveTask').onclick=()=>{const name=$('#tn').value.trim(),icon=$('#ti').value.trim()||meta[s][1],days=[...document.querySelectorAll('input[name="day"]:checked')].map(x=>+x.value);if(!name||!days.length)return toast('请填写任务名并至少选择一天');if(ex)Object.assign(ex,{name,icon,days,core:$('#tc').checked});else state.tasks.push({id:'custom-'+Date.now(),subject:s,name,icon,days,core:$('#tc').checked,builtin:0});syncTodayPlan();save();closeModal();subject(s)}}
 function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼商城</h1><p>学习赚小鱼，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
