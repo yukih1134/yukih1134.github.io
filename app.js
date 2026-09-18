@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const K='miaomiao-study-desk-v2',$=s=>document.querySelector(s),nav=$('#nav'),page=$('#page');
-const navs=[['home','首页','⌂'],['chinese','语文','📖'],['math','数学','123'],['english','英语','ABC'],['sport','运动','🪢'],['shop','商城','🛒'],['pet','宠物','🐱'],['rewards','奖励','🎁'],['calendar','日历','🗓️']];
+const navs=[['home','首页','⌂'],['chinese','语文','书'],['math','数学','123'],['english','英语','Aa'],['sport','运动','动'],['shop','商城','店'],['pet','宠物','猫'],['rewards','奖励','☆'],['calendar','日历','日']];
 const meta={chinese:['语文','📖','#f6e4e8'],math:['数学','123','#eaf2fb'],english:['英语','ABC','#f9efde'],sport:['运动','🪢','#e7f4ea']};
 const wd=['日','一','二','三','四','五','六'];
 const defaults=[
@@ -123,22 +123,86 @@ function soundBrush(){for(let i=0;i<4;i++)tone(430+i*30,.045,'sine',.012,i*.08)}
 function soundClip(){tone(900,.025,'square',.014);tone(700,.025,'square',.012,.16)}
 function soundSoftCare(){tone(440,.06,'sine',.012);tone(554,.08,'sine',.012,.09);tone(660,.1,'sine',.01,.18)}
 function soundRest(){tone(220,.12,'sine',.01);tone(185,.18,'sine',.008,.12)}
+const catMediaSources={
+  meow:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Meow.ogg',
+  purr:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Purring_cat.oga'
+};
+const catMedia={};
+function mediaFor(name){
+  if(catMedia[name])return catMedia[name];
+  const a=new Audio(catMediaSources[name]);a.preload='auto';a.playsInline=true;
+  a.volume=name==='purr'?.32:.72;catMedia[name]=a;return a;
+}
+async function playRealCat(name,maxMs){
+  try{
+    const a=mediaFor(name);a.pause();a.currentTime=0;
+    await a.play();
+    if(maxMs)setTimeout(()=>{try{a.pause();a.currentTime=0}catch(e){}},maxMs);
+    return true;
+  }catch(e){return false}
+}
+async function catMeow(){if(!(await playRealCat('meow',1300)))soundMeow()}
+async function catPurr(){if(!(await playRealCat('purr',2300)))soundPurr()}
+
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function renderNav(){nav.innerHTML=navs.map(([id,l,i])=>`<button class="nav-btn ${cur===id?'active':''}" data-p="${id}"><i>${i}</i>${l}</button>`).join('');nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>go(b.dataset.p))}
 function go(p){cur=p;clearInterval(timer);if(p!=='pet')stopPetIdle();renderNav();render()}
 function render(){({home,chinese:()=>subject('chinese'),math:()=>subject('math'),english:()=>subject('english'),sport:()=>subject('sport'),shop:renderShop,pet:renderPet,rewards:renderRewards,calendar:renderCalendar}[cur]||home)()}
 function home(){
-const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0,pages=Math.max(1,Math.ceil(tt.length/3));tp=Math.min(tp,pages-1);const slice=tt.slice(tp*3,tp*3+3);
-page.innerHTML=`<div class="home-grid">
-<article class="card soft-pink"><div class="card-head"><div class="card-title">🗓️ 今日进度</div><span style="font-size:10px;color:var(--muted)">${d.getMonth()+1}月${d.getDate()}日 星期${wd[d.getDay()]}</span></div><div class="progress-body"><div class="progress-ring" style="--p:${p}%"><div class="progress-center"><strong>${n}/${cc.length}</strong><span>今日完成</span></div></div><div class="stat-list"><div class="stat"><span>⭐ 我的积分</span><strong>${state.points}</strong></div><div class="stat"><span>🐟 我的小鱼</span><strong>${state.fish}</strong></div><div class="stat"><span>📅 本周完成</span><strong>${weekFull()}/7</strong></div></div></div></article>
-<article class="card soft-amber home-pet-card"><div class="card-head"><div class="card-title">🐾 我的宠物 · 奶糕</div><button class="mini-action" data-go="pet">›</button></div><div class="pet-body"><div class="pet-scene"><div class="home-cat">${catSvg('mini')}</div></div><div class="pet-side"><div class="home-pet-message">${esc(state.pet.message)}</div><div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div><div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div><div class="pet-status"><span>🐟 小鱼</span><b>${state.fish}</b></div><div class="pet-actions">${[['feed','🥣','喂食'],['play','🧶','玩耍'],['bath','🫧','洗澡'],['treat','🧰','护理']].map(x=>`<button class="pet-action" data-q="${x[0]}"><b>${x[1]}</b>${x[2]}</button>`).join('')}</div></div></div></article>
-<article class="card soft-pink"><div class="card-head"><div class="card-title">🏆 我的奖励</div><button class="text-action" data-go="rewards">去兑换 ›</button></div><div class="reward-body"><div class="points-row"><strong>${state.points}</strong> 积分</div><div class="reward-track">${fixedRewards.map((r,i)=>`<div class="reward-node" style="left:${[18,50,82][i]}%"><i>${r.emoji}</i><b>${r.points}分</b><small>${r.title}</small></div>`).join('')}</div><div class="lock-note">🔒 本周满额 3 / 5 / 7 天解锁对应奖励</div></div></article>
-<article class="card tasks-card"><div class="tasks-toolbar"><h2>✅ 今日任务 <small>完成一项 +2分 +1🐟</small></h2><div class="pager"><button data-prev>‹</button><span class="page-pill">${tp+1}/${pages}</span><button data-next>›</button></div></div><div class="task-slider" id="slider"><div class="task-row">${slice.map(taskCard).join('')}</div></div></article>
-<article class="card soft-blue week-card"><div class="card-head"><div class="card-title">🗓️ 本周打卡</div><button class="mini-action" data-go="calendar">›</button></div><div class="week-body">${weekMini()}</div></article></div>`;
-bindGo();page.querySelectorAll('[data-check]').forEach(b=>b.onclick=()=>complete(b.dataset.check));page.querySelector('[data-prev]').onclick=()=>{pauseUntil=Date.now()+15000;tp=(tp-1+pages)%pages;home()};page.querySelector('[data-next]').onclick=()=>{pauseUntil=Date.now()+15000;tp=(tp+1)%pages;home()};page.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{sessionStorage.setItem('miaomiao-pet-action',b.dataset.q);go('pet')});
-const s=$('#slider');if(s&&pages>1){let x=0;s.ontouchstart=e=>{x=e.touches[0].clientX;pauseUntil=Date.now()+15000};s.ontouchend=e=>{let dx=e.changedTouches[0].clientX-x;if(Math.abs(dx)>40){tp=(tp+(dx<0?1:-1)+pages)%pages;home()}}}
-clearInterval(timer);if(pages>1)timer=setInterval(()=>{if(Date.now()>pauseUntil&&cur==='home'){tp=(tp+1)%pages;home()}},10000)
+  const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0;
+  const nextReward=fixedRewards.find(r=>state.points<r.points)||fixedRewards[fixedRewards.length-1];
+  page.innerHTML=`<div class="home-simple">
+    <section class="card overview-card">
+      <div class="overview-main">
+        <div class="overview-progress">
+          <strong>${n}/${cc.length}</strong><span>今日完成</span>
+          <div class="overview-bar"><i style="width:${p}%"></i></div>
+        </div>
+        <div class="overview-stats">
+          <div><span>积分</span><b>${state.points}</b></div>
+          <div><span>小鱼</span><b>${state.fish}</b></div>
+          <div><span>本周</span><b>${weekFull()}/7</b></div>
+        </div>
+      </div>
+      <div class="overview-footer">
+        <span>${d.getMonth()+1}月${d.getDate()}日 · 星期${wd[d.getDay()]}</span>
+        <button class="plain-link" data-go="rewards">下一奖励 ${nextReward.points}分 ›</button>
+      </div>
+    </section>
+
+    <section class="card home-pet-simple">
+      <div class="home-pet-visual">${catSvg('mini')}</div>
+      <div class="home-pet-info">
+        <div class="home-pet-title"><div><b>奶糕</b><span>我的橘猫伙伴</span></div><button class="plain-link" data-go="pet">去互动 ›</button></div>
+        <p>${esc(state.pet.message)}</p>
+        <div class="home-pet-meta">
+          <span>💗 ${state.pet.mood}%</span>
+          <span>🐟 ${state.fish}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card task-board-card">
+      <div class="board-head">
+        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成 · 每项 +2分 +1🐟</span></div>
+        <button class="plain-link" data-go="calendar">本周 ${weekFull()}/7 ›</button>
+      </div>
+      <div class="task-board">${tt.map(boardTaskCard).join('')}</div>
+    </section>
+  </div>`;
+
+  bindGo();
+  page.querySelectorAll('[data-board-check]').forEach(b=>b.onclick=()=>complete(b.dataset.boardCheck));
+  clearInterval(timer);
+}
+function boardTaskCard(t){
+  const ok=done(t.id),m=meta[t.subject]||['任务','•','#f5ecef'];
+  return `<button class="board-task ${ok?'done':''}" data-board-check="${t.id}" ${ok?'disabled':''}>
+    <span class="board-task-icon" style="--dot:${m[2]}">${t.icon}</span>
+    <span class="board-task-copy"><b>${esc(t.name)}</b><small>${m[0]} · ${ok?'已完成':'待完成'}</small></span>
+    <span class="board-check">${ok?'✓':'+'}</span>
+  </button>`
 }
 function taskCard(t){const d=done(t.id);return `<div class="task-card ${d?'done':''}"><div class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</div><div><div class="task-name">${esc(t.name)}</div><div class="task-status">${d?'今天已完成 ✓':'今日未完成'}</div></div><button class="check-btn ${d?'done':''}" data-check="${t.id}" ${d?'disabled':''}>${d?'已完成 ✓':'完成打卡 +2分'}</button></div>`}
 function complete(id){
@@ -247,9 +311,10 @@ function renderPet(){
         <div class="pet-quick-actions">${quick.map(x=>`<button class="pet-quick" data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}</div>
         <div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div>
         <div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div>
-        <div class="sound-tip">🔊 摸摸会先轻声“喵”，再呼噜；若无声请检查手机静音模式</div>
+        <div class="sound-tip">🔊 摸摸：真实猫叫 → 呼噜；“叫一声”会直接播放真实猫叫</div>
         <h3>我的宠物用品</h3>
         <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼兑换吧。</div>'}</div>
+        <div class="audio-credit">猫叫：Dan Crosby / Wikimedia Commons（CC BY-SA 3.0） · 呼噜：Mysid / Public Domain</div>
       </div>
     </div>
   </div>`;
@@ -263,12 +328,12 @@ function petAction(action){
   if(petBusy)return;
   stopPetIdle();
   if(action==='pet'){
-    petBusy=true;unlockAudio();soundMeow();setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
-    setTimeout(()=>{setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');soundPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')},420);return;
+    petBusy=true;unlockAudio();catMeow();setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
+    setTimeout(()=>{setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');catPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')},620);return;
   }
   if(action==='meow'){
-    petBusy=true;setPetVisual('attention','奶糕听见你叫它，耳朵转向你。');
-    setTimeout(()=>{setPetVisual('meowing','奶糕抬头：喵～','<span class="sound-wave">)))</span>');soundMeow();finishPetAction('奶糕叫完一声，又安静下来。')},420);return;
+    petBusy=true;unlockAudio();catMeow();setPetVisual('meowing','奶糕抬头：喵～','<span class="sound-wave">)))</span>');
+    finishPetAction('奶糕叫完一声，又安静下来。');return;
   }
   if(action==='feed'){const item=findOwnedBy('feed');if(!item)return petNeed('食物','feed');usePetItem(item.id);return}
   if(action==='play'){const item=findOwnedBy('play');if(!item)return petNeed('玩具','play');usePetItem(item.id);return}
@@ -277,7 +342,7 @@ function petAction(action){
 }
 function findOwnedBy(action){return shop.find(i=>i.action===action&&(state.inventory[i.id]||0)>0)}
 function petNeed(name,action){
-  state.pet.message='还缺'+name+'，去商城准备一下吧～';save();soundMeow();toast('需要先兑换'+name);
+  state.pet.message='还缺'+name+'，去商城准备一下吧～';save();catMeow();toast('需要先兑换'+name);
   const m=$('#petMessage');if(m)m.textContent=state.pet.message;
 }
 function usePetItem(id){
