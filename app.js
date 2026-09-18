@@ -34,7 +34,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function renderNav(){nav.innerHTML=navs.map(([id,l,i])=>`<button class="nav-btn ${cur===id?'active':''}" data-p="${id}"><i>${i}</i>${l}</button>`).join('');nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>go(b.dataset.p))}
 function go(p){cur=p;clearInterval(timer);renderNav();render()}
-function render(){({home,renderSubjectChinese:()=>subject('chinese'),renderSubjectMath:()=>subject('math'),renderSubjectEnglish:()=>subject('english'),renderSubjectSport:()=>subject('sport'),shop:renderShop,pet:renderPet,rewards:renderRewards,calendar:renderCalendar}[cur]||home)()}
+function render(){({home,chinese:()=>subject('chinese'),math:()=>subject('math'),english:()=>subject('english'),sport:()=>subject('sport'),shop:renderShop,pet:renderPet,rewards:renderRewards,calendar:renderCalendar}[cur]||home)()}
 function home(){
 const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0,pages=Math.max(1,Math.ceil(tt.length/3));tp=Math.min(tp,pages-1);const slice=tt.slice(tp*3,tp*3+3);
 page.innerHTML=`<div class="home-grid">
@@ -43,15 +43,56 @@ page.innerHTML=`<div class="home-grid">
 <article class="card soft-pink"><div class="card-head"><div class="card-title">🏆 我的奖励</div><button class="text-action" data-go="rewards">去兑换 ›</button></div><div class="reward-body"><div class="points-row"><strong>${state.points}</strong> 积分</div><div class="reward-track">${fixedRewards.map((r,i)=>`<div class="reward-node" style="left:${[18,50,82][i]}%"><i>${r.emoji}</i><b>${r.points}分</b><small>${r.title}</small></div>`).join('')}</div><div class="lock-note">🔒 本周满额 3 / 5 / 7 天解锁对应奖励</div></div></article>
 <article class="card tasks-card"><div class="tasks-toolbar"><h2>✅ 今日任务 <small>完成一项 +2分 +1🐟</small></h2><div class="pager"><button data-prev>‹</button><span class="page-pill">${tp+1}/${pages}</span><button data-next>›</button></div></div><div class="task-slider" id="slider"><div class="task-row">${slice.map(taskCard).join('')}</div></div></article>
 <article class="card soft-blue week-card"><div class="card-head"><div class="card-title">🗓️ 本周打卡</div><button class="mini-action" data-go="calendar">›</button></div><div class="week-body">${weekMini()}</div></article></div>`;
-bindGo();page.querySelectorAll('[data-check]').forEach(b=>b.onclick=()=>complete(b.dataset.check));page.querySelector('[data-prev]').onclick=()=>{pauseUntil=Date.now()+15000;tp=(tp-1+pages)%pages;home()};page.querySelector('[data-next]').onclick=()=>{pauseUntil=Date.now()+15000;tp=(tp+1)%pages;home()};page.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{state.pet.message='先去商城给奶糕准备对应用品吧～';save();toast(state.pet.message);home()});
+bindGo();page.querySelectorAll('[data-check]').forEach(b=>b.onclick=()=>complete(b.dataset.check));page.querySelector('[data-prev]').onclick=()=>{pauseUntil=Date.now()+15000;tp=(tp-1+pages)%pages;home()};page.querySelector('[data-next]').onclick=()=>{pauseUntil=Date.now()+15000;tp=(tp+1)%pages;home()};page.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{sessionStorage.setItem('miaomiao-pet-action',b.dataset.q);go('pet')});
 const s=$('#slider');if(s&&pages>1){let x=0;s.ontouchstart=e=>{x=e.touches[0].clientX;pauseUntil=Date.now()+15000};s.ontouchend=e=>{let dx=e.changedTouches[0].clientX-x;if(Math.abs(dx)>40){tp=(tp+(dx<0?1:-1)+pages)%pages;home()}}}
 clearInterval(timer);if(pages>1)timer=setInterval(()=>{if(Date.now()>pauseUntil&&cur==='home'){tp=(tp+1)%pages;home()}},10000)
 }
 function taskCard(t){const d=done(t.id);return `<div class="task-card ${d?'done':''}"><div class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</div><div><div class="task-name">${esc(t.name)}</div><div class="task-status">${d?'今天已完成 ✓':'今日未完成'}</div></div><button class="check-btn ${d?'done':''}" data-check="${t.id}" ${d?'disabled':''}>${d?'已完成 ✓':'完成打卡 +2分'}</button></div>`}
-function complete(id){const r=rec(key());if(r.completed.includes(id))return;r.completed.push(id);state.points+=2;state.fish++;state.pet.mood=Math.min(100,state.pet.mood+2);state.pet.message='收到一条小鱼！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;toast('完成啦！+2分 · 🐟 +1');home()}
+function complete(id){
+  const r=rec(key());if(r.completed.includes(id))return;
+  r.completed.push(id);state.points+=2;state.fish++;state.pet.mood=Math.min(100,state.pet.mood+2);
+  state.pet.message='收到一条小鱼！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
+  soundCheckin();toast('完成啦！+2分 · 🐟 +1');
+  const back=cur;
+  if(meta[back])subject(back);else home();
+}
 function weekMini(){let now=new Date();now.setHours(0,0,0,0);return `<div class="week-days">${weekDates().map(d=>{const f=d>now,ok=!f&&full(d),today=key(d)===key(now);return `<div><div class="weekday">${['一','二','三','四','五','六','日'][(d.getDay()+6)%7]}</div><div class="day-dot ${f?'future':ok?'done':'missed'} ${today?'today':''}">${ok?'✓':f?'':'·'}</div></div>`}).join('')}</div><div class="legend">绿色已打卡 · 粉色未打卡 · 灰色未到时间</div>`}
-function subject(s){const m=meta[s],arr=state.tasks.filter(t=>t.subject===s);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>${m[1]} ${m[0]}</h1><p>这里只设置打卡任务，不放学习内容。任务名称、日期与满额规则都可以调整。</p></div><button class="primary-btn" data-add>＋ 新增任务</button></div><div class="grid-cards">${arr.map(t=>`<div class="feature-card"><div class="feature-top"><div class="feature-icon" style="background:${m[2]}">${t.icon}</div><span class="chip">${t.core?'计入满额':'加分任务'}</span></div><h3>${esc(t.name)}</h3><p>${daysText(t.days)}</p><div class="card-actions"><button class="secondary-btn" data-edit="${t.id}">编辑</button>${t.builtin?'':`<button class="danger-btn" data-del="${t.id}">删除</button>`}</div></div>`).join('')}<button class="feature-card add-card" data-add>＋ 新增${m[0]}任务</button></div></div>`;page.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>taskModal(s));page.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>taskModal(s,b.dataset.edit));page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);save();subject(s)})}
-function daysText(a){return a.length===7?'每天':'每周'+a.slice().sort((x,y)=>((x+6)%7)-((y+6)%7)).map(d=>'星期'+wd[d]).join('、')}
+function subject(s){
+  const m=meta[s],arr=state.tasks.filter(t=>t.subject===s),today=new Date(),todayList=arr.filter(t=>t.days.includes(today.getDay()));
+  page.innerHTML=`<div class="page-panel subject-panel">
+    <div class="section-hero subject-hero">
+      <div><h1>${m[1]} ${m[0]}</h1><p>今日 ${todayList.length} 项 · 点击任务即可打卡；这里只记录完成，不放学习内容。</p></div>
+      <button class="primary-btn" data-add>＋ 新增任务</button>
+    </div>
+    <div class="subject-summary">
+      <div><b>今日任务</b><span>${todayList.filter(t=>done(t.id)).length}/${todayList.length} 已完成</span></div>
+      <div class="subject-mini-tasks">${todayList.length?todayList.map(t=>{
+        const ok=done(t.id);
+        return `<button class="subject-mini ${ok?'done':''}" data-subcheck="${t.id}" ${ok?'disabled':''}><span>${t.icon}</span><b>${esc(t.name)}</b><small>${ok?'已完成 ✓':'点我打卡 +2'}</small></button>`
+      }).join(''):'<div class="empty-note">今天没有安排这个科目的任务</div>'}</div>
+    </div>
+    <div class="grid-cards subject-all">
+      ${arr.map(t=>{
+        const scheduled=t.days.includes(today.getDay()),ok=scheduled&&done(t.id);
+        return `<div class="feature-card subject-task-card ${ok?'is-done':''}">
+          <div class="feature-top"><div class="feature-icon" style="background:${m[2]}">${t.icon}</div><span class="chip">${t.core?'计入满额':'加分任务'}</span></div>
+          <h3>${esc(t.name)}</h3><p>${daysText(t.days)}</p>
+          <div class="task-state-line">${scheduled?(ok?'✅ 今天已完成':'○ 今天待完成'):'— 今天不安排'}</div>
+          <div class="card-actions">
+            ${scheduled?`<button class="primary-btn compact" data-subcheck="${t.id}" ${ok?'disabled':''}>${ok?'已完成':'完成打卡 +2'}</button>`:''}
+            <button class="secondary-btn" data-edit="${t.id}">编辑</button>
+            ${t.builtin?'':`<button class="danger-btn" data-del="${t.id}">删除</button>`}
+          </div>
+        </div>`
+      }).join('')}
+      <button class="feature-card add-card" data-add>＋ 新增${m[0]}任务</button>
+    </div>
+  </div>`;
+  page.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>taskModal(s));
+  page.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>taskModal(s,b.dataset.edit));
+  page.querySelectorAll('[data-subcheck]').forEach(b=>b.onclick=()=>complete(b.dataset.subcheck));
+  page.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{state.tasks=state.tasks.filter(t=>t.id!==b.dataset.del);save();subject(s)});
+}function daysText(a){return a.length===7?'每天':'每周'+a.slice().sort((x,y)=>((x+6)%7)-((y+6)%7)).map(d=>'星期'+wd[d]).join('、')}
 function taskModal(s,id){const ex=id&&state.tasks.find(t=>t.id===id),t=ex||{name:'',icon:meta[s][1],days:[0,1,2,3,4,5,6],core:1};modal(`<h2>${ex?'编辑':'新增'}${meta[s][0]}任务</h2><div class="field"><label>任务名称</label><input id="tn" value="${esc(t.name)}"></div><div class="field"><label>图标</label><input id="ti" value="${esc(t.icon)}"></div><div class="field"><label>出现日期</label><div class="days-check">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="day" value="${d}" ${t.days.includes(d)?'checked':''}>周${wd[d]}</label>`).join('')}</div></div><div class="field"><label><input type="checkbox" id="tc" ${t.core?'checked':''}> 计入当天满额</label></div><div class="modal-actions"><button class="secondary-btn" data-close>取消</button><button class="primary-btn" id="saveTask">保存</button></div>`);$('#saveTask').onclick=()=>{const name=$('#tn').value.trim(),icon=$('#ti').value.trim()||meta[s][1],days=[...document.querySelectorAll('input[name="day"]:checked')].map(x=>+x.value);if(!name||!days.length)return toast('请填写任务名并至少选择一天');if(ex)Object.assign(ex,{name,icon,days,core:$('#tc').checked});else state.tasks.push({id:'custom-'+Date.now(),subject:s,name,icon,days,core:$('#tc').checked,builtin:0});save();closeModal();subject(s)}}
 function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼商城</h1><p>学习赚小鱼，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function renderPet(){const own=shop.filter(i=>(state.inventory[i.id]||0)>0);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🐾 奶糕的小屋</h1><p>互动是轻量反馈，不增加新的必须完成任务。</p></div><b>🐟 ${state.fish}</b></div><div class="pet-large"><div class="pet-stage"><div class="pet-message">${esc(state.pet.message)}</div><div class="cat">🐈</div></div><div class="card" style="padding:12px"><h3>奶糕的状态</h3><div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div><div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div><h3>我的宠物用品</h3><div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><b>${i.emoji} ${i.name}</b><br>×${state.inventory[i.id]}<br><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'还没有用品，去商城看看吧。'}</div></div></div></div>`;page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.use);if(!i||!state.inventory[i.id])return;state.inventory[i.id]--;state.pet.mood=Math.min(100,state.pet.mood+5);state.pet.message={feed:'奶糕低头吃起来，尾巴开心地晃了晃。',play:'奶糕追着玩具扑来扑去！',groom:'奶糕乖乖坐好享受护理。',bath:'花洒打开，泡泡冒出来啦！',treat:'奶糕接受了模拟护理，安静休息。',rest:'奶糕舒服地蜷起来休息。'}[i.action];save();toast('奶糕有回应啦');renderPet()})}
