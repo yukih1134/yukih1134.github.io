@@ -92,8 +92,16 @@ function catSvg(kind='large'){
 
 
 let audioCtx=null;
+function setPlaybackAudioSession(){
+  try{
+    if(navigator.audioSession && 'type' in navigator.audioSession){
+      navigator.audioSession.type='playback';
+    }
+  }catch(e){}
+}
+
 function ctx(){try{return audioCtx||(audioCtx=new (window.AudioContext||window.webkitAudioContext)())}catch{return null}}
-async function unlockAudio(){const c=ctx();if(c&&c.state==='suspended'){try{await c.resume()}catch(e){}}}
+async function unlockAudio(){setPlaybackAudioSession();const c=ctx();if(c&&c.state==='suspended'){try{await c.resume()}catch(e){}}}
 function sweep(from,to,dur=.28,gain=.035,delay=0){
   const c=ctx();if(!c)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;
   o.type='triangle';o.frequency.setValueAtTime(from,t);o.frequency.exponentialRampToValueAtTime(Math.max(60,to),t+dur);
@@ -130,11 +138,12 @@ const catMediaSources={
 const catMedia={};
 function mediaFor(name){
   if(catMedia[name])return catMedia[name];
-  const a=new Audio(catMediaSources[name]);a.preload='auto';a.playsInline=true;
+  const a=new Audio(catMediaSources[name]);a.preload='auto';a.playsInline=true;a.setAttribute('playsinline','');
   a.volume=name==='purr'?.32:.72;catMedia[name]=a;return a;
 }
 async function playRealCat(name,maxMs){
   try{
+    setPlaybackAudioSession();
     const a=mediaFor(name);a.pause();a.currentTime=0;
     await a.play();
     if(maxMs)setTimeout(()=>{try{a.pause();a.currentTime=0}catch(e){}},maxMs);
@@ -410,6 +419,9 @@ addEventListener('pageshow',()=>{syncLandscape();tryLandscapeLock()});
 document.addEventListener('pointerdown',tryLandscapeLock,{once:true,passive:true});
 document.addEventListener('pointerdown',unlockAudio,{passive:true});
 syncLandscape();
+setPlaybackAudioSession();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setPlaybackAudioSession()});
+addEventListener('pageshow',setPlaybackAudioSession,{passive:true});
 renderNav();home();
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
