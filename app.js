@@ -42,49 +42,110 @@ const nowMs=()=>Date.now();
 const BACKUP_LATEST='miaomiao-backup-latest-v1';
 const BACKUP_PREV='miaomiao-backup-prev-v1';
 const BACKUP_DAILY_PREFIX='miaomiao-backup-day-';
-const DATA_SCHEMA=2;
+const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
+const EVIDENCE_RESTORE_KEY='miaomiao-evidence-restore-2026-09-18-v1';
+const INVENTORY_RESTORE_KEY='miaomiao-inventory-restore-2026-09-18-v1';
+const DATA_SCHEMA=3;
+const KNOWN_SEP18_IDS=['cn-write','cn-read','math-homework','en-listen','en-raz','sp-badminton'];
+
 const petDefaults=()=>({
   mood:85,hunger:84,cleanliness:90,health:100,
   message:'等你完成任务，我们一起玩吧！',
   lastUpdated:nowMs(),vitalsVersion:1
 });
-const init=()=>({schema:DATA_SCHEMA,points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],shopCat:'食物'});
-const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
+const init=()=>({
+  schema:DATA_SCHEMA,points:0,fish:0,tasks:structuredClone(defaults),
+  records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],
+  shopCat:'食物',migrations:{}
+});
+function isPlainObject(x){return !!x&&typeof x==='object'&&!Array.isArray(x)}
 function parseState(raw){
   if(!raw)return null;
-  try{
-    const x=JSON.parse(raw);
-    return x&&typeof x==='object'&&!Array.isArray(x)?x:null;
-  }catch{return null}
+  try{const x=JSON.parse(raw);return isPlainObject(x)?x:null}catch{return null}
+}
+function normalizeState(input){
+  const src=isPlainObject(input)?input:{},base=init(),out={...base,...src};
+  out.schema=DATA_SCHEMA;
+  out.points=Math.max(0,Number.isFinite(Number(src.points))?Math.round(Number(src.points)):0);
+  out.fish=Math.max(0,Number.isFinite(Number(src.fish))?Math.round(Number(src.fish)):0);
+  out.tasks=Array.isArray(src.tasks)?src.tasks.filter(t=>isPlainObject(t)&&typeof t.id==='string'&&typeof t.subject==='string'&&typeof t.name==='string').map(t=>({
+    ...t,
+    icon:typeof t.icon==='string'?t.icon:(meta[t.subject]?.[1]||'•'),
+    days:Array.isArray(t.days)?[...new Set(t.days.map(Number).filter(d=>Number.isInteger(d)&&d>=0&&d<=6))]:[0,1,2,3,4,5,6],
+    core:1,
+    builtin:t.builtin?1:0
+  })):structuredClone(defaults);
+  if(!out.tasks.length)out.tasks=structuredClone(defaults);
+
+  out.records={};
+  if(isPlainObject(src.records)){
+    for(const [date,r] of Object.entries(src.records)){
+      if(!isPlainObject(r))continue;
+      const completed=Array.isArray(r.completed)?[...new Set(r.completed.filter(x=>typeof x==='string'))]:[];
+      const nr={...r,completed};
+      if(Array.isArray(r.planned))nr.planned=[...new Set(r.planned.filter(x=>typeof x==='string'))];
+      out.records[date]=nr;
+    }
+  }
+
+  out.inventory={};
+  if(isPlainObject(src.inventory)){
+    for(const [id,n] of Object.entries(src.inventory)){
+      const q=Math.max(0,Math.floor(Number(n)||0));
+      if(q)out.inventory[id]=q;
+    }
+  }
+  out.pet={...petDefaults(),...(isPlainObject(src.pet)?src.pet:{})};
+  out.customRewards=Array.isArray(src.customRewards)?src.customRewards.filter(r=>isPlainObject(r)&&typeof r.title==='string'&&Number(r.points)>=2).map(r=>({...r,points:Math.round(Number(r.points))})):[];
+  out.rewardLog=Array.isArray(src.rewardLog)?src.rewardLog.filter(isPlainObject):[];
+  out.shopCat=['食物','玩具','洗漱','医疗'].includes(src.shopCat)?src.shopCat:'食物';
+  out.migrations=isPlainObject(src.migrations)?{...src.migrations}:{};
+  return out;
 }
 function loadStateSafely(){
   const mainRaw=(()=>{try{return localStorage.getItem(K)}catch{return null}})();
   const main=parseState(mainRaw);
-  if(main)return {state:{...init(),...main},source:'main',raw:mainRaw};
+  if(main)return {state:normalizeState(main),source:'main',raw:mainRaw};
   for(const bk of [BACKUP_LATEST,BACKUP_PREV]){
     const raw=(()=>{try{return localStorage.getItem(bk)}catch{return null}})();
     const parsed=parseState(raw);
-    if(parsed)return {state:{...init(),...parsed},source:bk,raw};
+    if(parsed)return {state:normalizeState(parsed),source:bk,raw};
   }
   return {state:init(),source:'new',raw:null};
 }
 const loaded=loadStateSafely();
-let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false;
-let lastSavedRaw=loaded.raw||null;
+let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false,evidenceRestoreApplied=false,inventoryRestoreApplied=false;
+let lastSavedRaw=loaded.raw||null,lastPruneDay='';
+
 function dayKeyForBackup(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function pruneDailyBackups(limit=45){
+  try{
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);if(k&&k.startsWith(BACKUP_DAILY_PREFIX))keys.push(k);
+    }
+    keys.sort().reverse();
+    keys.slice(limit).forEach(k=>localStorage.removeItem(k));
+  }catch(e){}
+}
+function maybePruneBackups(){
+  const d=dayKeyForBackup();
+  if(lastPruneDay===d)return;
+  lastPruneDay=d;pruneDailyBackups(45);
+}
 function snapshotCurrentRaw(raw=lastSavedRaw){
   if(!raw)return;
   try{
     if(!localStorage.getItem(BACKUP_LATEST))localStorage.setItem(BACKUP_LATEST,raw);
     const dk=BACKUP_DAILY_PREFIX+dayKeyForBackup();
     if(!localStorage.getItem(dk))localStorage.setItem(dk,raw);
+    maybePruneBackups();
   }catch(e){}
 }
 function save(){
   try{
-    state.schema=DATA_SCHEMA;
-    const next=JSON.stringify(state);
-    const current=localStorage.getItem(K);
+    state=normalizeState(state);
+    const next=JSON.stringify(state),current=localStorage.getItem(K);
     if(current&&current!==next){
       const latest=localStorage.getItem(BACKUP_LATEST);
       if(latest&&latest!==current)localStorage.setItem(BACKUP_PREV,latest);
@@ -92,44 +153,39 @@ function save(){
       const dk=BACKUP_DAILY_PREFIX+dayKeyForBackup();
       if(!localStorage.getItem(dk))localStorage.setItem(dk,current);
     }
-    localStorage.setItem(K,next);
-    lastSavedRaw=next;
-    return true;
+    localStorage.setItem(K,next);lastSavedRaw=next;maybePruneBackups();return true;
   }catch(e){return false}
 }
 function availableBackups(){
   const out=[];
   try{
-    const keys=[BACKUP_LATEST,BACKUP_PREV];
+    const keys=[BACKUP_LATEST,BACKUP_PREV],daily=[];
     for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);if(k&&k.startsWith(BACKUP_DAILY_PREFIX))keys.push(k);
+      const k=localStorage.key(i);if(k&&k.startsWith(BACKUP_DAILY_PREFIX))daily.push(k);
     }
+    daily.sort().reverse();keys.push(...daily);
     const seen=new Set();
     for(const k of keys){
       const raw=localStorage.getItem(k),x=parseState(raw);
       if(!x||seen.has(raw))continue;seen.add(raw);
-      out.push({key:k,raw,state:x});
+      out.push({key:k,raw,state:normalizeState(x)});
     }
   }catch(e){}
   return out;
 }
 function backupSummary(x){
-  const dates=Object.keys(x.records||{}).sort();
-  const inv=Object.values(x.inventory||{}).reduce((a,b)=>a+(Number(b)||0),0);
-  return {points:Number(x.points)||0,fish:Number(x.fish)||0,dates,inventory:inv};
+  const n=normalizeState(x),dates=Object.keys(n.records).sort();
+  const inv=Object.values(n.inventory).reduce((a,b)=>a+(Number(b)||0),0);
+  return {points:n.points,fish:n.fish,dates,inventory:inv};
 }
-function restoreBackupByKey(k){
-  try{
-    const raw=localStorage.getItem(k),x=parseState(raw);if(!x)return false;
-    const current=localStorage.getItem(K);if(current)localStorage.setItem(BACKUP_LATEST,current);
-    state={...init(),...x};ensurePetVitals();localStorage.setItem(K,JSON.stringify(state));lastSavedRaw=JSON.stringify(state);return true;
-  }catch{return false}
-}
-function clampPet(v){return Math.max(0,Math.min(100,Math.round(v)))}
+function clampPet(v){return Math.max(0,Math.min(100,Math.round(Number(v)||0)))}
 function ensurePetVitals(){
-  const p=state.pet&&typeof state.pet==='object'?state.pet:{};
-  const legacy=!p.vitalsVersion;
+  const p=isPlainObject(state.pet)?state.pet:{},legacy=!p.vitalsVersion;
   state.pet={...petDefaults(),...p};
+  state.pet.mood=clampPet(state.pet.mood);
+  state.pet.hunger=clampPet(state.pet.hunger);
+  state.pet.cleanliness=clampPet(state.pet.cleanliness);
+  state.pet.health=clampPet(state.pet.health);
   if(legacy){
     state.pet.hunger=72;state.pet.cleanliness=78;state.pet.health=96;
     state.pet.mood=Math.min(Number(p.mood)||85,88);
@@ -157,8 +213,7 @@ function updatePetNeeds(now=nowMs(),persist=true){
     const step=Math.min(1,remaining);
     p.hunger=clampPet(p.hunger-3*step);
     p.cleanliness=clampPet(p.cleanliness-1.35*step);
-    const stressed=p.hunger<22||p.cleanliness<20;
-    const mildlyStressed=p.hunger<38||p.cleanliness<35;
+    const stressed=p.hunger<22||p.cleanliness<20,mildlyStressed=p.hunger<38||p.cleanliness<35;
     if(stressed)p.health=clampPet(p.health-1.35*step);
     else if(p.hunger>55&&p.cleanliness>55)p.health=clampPet(p.health+0.18*step);
     if(stressed||p.health<60)p.mood=clampPet(p.mood-1.15*step);
@@ -178,60 +233,51 @@ function applyPetEffect(effect={}){
   p.lastUpdated=nowMs();save();
 }
 function petStatusClass(v){return v<25?'critical':v<50?'low':v<75?'mid':'good'}
-ensurePetVitals();
-updatePetNeeds(nowMs(),false);
-snapshotCurrentRaw();
 
-const EVIDENCE_RESTORE_KEY='miaomiao-evidence-restore-2026-09-18-v1';
-let evidenceRestoreApplied=false;
-function applyEvidenceRestore(){
+function migrateLegacyMigrationFlags(){
+  state.migrations=isPlainObject(state.migrations)?state.migrations:{};
   try{
-    if(localStorage.getItem(EVIDENCE_RESTORE_KEY)==='1')return false;
-    const d='2026-09-18';
-    const ids=['cn-write','cn-read','math-homework','en-listen','en-raz','sp-badminton'];
-    const existing=state.records&&state.records[d]&&Array.isArray(state.records[d].completed)?state.records[d].completed:[];
-    const planned=state.records&&state.records[d]&&Array.isArray(state.records[d].planned)?state.records[d].planned:ids;
-    state.records=state.records||{};
-    state.records[d]={
-      ...(state.records[d]||{}),
-      planned:Array.from(new Set([...planned,...ids])),
-      completed:Array.from(new Set([...existing,...ids]))
-    };
-    state.points=Math.max(Number(state.points)||0,24);
-    state.fish=Math.max(Number(state.fish)||0,17);
-    state.pet=state.pet||petDefaults();
-    state.pet.message='已恢复9月18日打卡记录、积分和小鱼干。';
-    save();
-    localStorage.setItem(EVIDENCE_RESTORE_KEY,'1');
-    evidenceRestoreApplied=true;
-    return true;
-  }catch(e){return false}
+    if(localStorage.getItem(STARTER_FISH_KEY)==='1')state.migrations.starterFish=true;
+    if(localStorage.getItem(EVIDENCE_RESTORE_KEY)==='1')state.migrations.sep18Evidence=true;
+    if(localStorage.getItem(INVENTORY_RESTORE_KEY)==='1')state.migrations.sep18Inventory=true;
+    localStorage.removeItem(STARTER_FISH_KEY);
+    localStorage.removeItem(EVIDENCE_RESTORE_KEY);
+    localStorage.removeItem(INVENTORY_RESTORE_KEY);
+  }catch(e){}
 }
-applyEvidenceRestore();
-
-const INVENTORY_RESTORE_KEY='miaomiao-inventory-restore-2026-09-18-v1';
-let inventoryRestoreApplied=false;
-function applyInventoryRestore(){
-  try{
-    if(localStorage.getItem(INVENTORY_RESTORE_KEY)==='1')return false;
-    state.inventory=state.inventory||{};
+function applyKnownMigrations(){
+  state.migrations=isPlainObject(state.migrations)?state.migrations:{};
+  if(!state.migrations.sep18Evidence){
+    const d='2026-09-18',r=isPlainObject(state.records[d])?state.records[d]:{};
+    const existing=Array.isArray(r.completed)?r.completed:[],planned=Array.isArray(r.planned)?r.planned:KNOWN_SEP18_IDS;
+    state.records[d]={...r,planned:[...new Set([...planned,...KNOWN_SEP18_IDS])],completed:[...new Set([...existing,...KNOWN_SEP18_IDS])]};
+    state.points=Math.max(state.points,24);state.fish=Math.max(state.fish,17);
+    state.migrations.sep18Evidence=true;evidenceRestoreApplied=true;
+  }
+  if(!state.migrations.sep18Inventory){
     state.inventory['food-treat']=Math.max(Number(state.inventory['food-treat'])||0,1);
     state.inventory['toy-box']=Math.max(Number(state.inventory['toy-box'])||0,1);
     state.inventory['care-brush']=Math.max(Number(state.inventory['care-brush'])||0,1);
-    state.pet=state.pet||petDefaults();
-    state.pet.message='已恢复昨天购买的猫条、纸箱和梳毛刷。';
-    save();
-    localStorage.setItem(INVENTORY_RESTORE_KEY,'1');
-    inventoryRestoreApplied=true;
-    return true;
-  }catch(e){return false}
+    state.migrations.sep18Inventory=true;inventoryRestoreApplied=true;
+  }
+  if(!state.migrations.starterFish){
+    state.fish+=6;state.migrations.starterFish=true;starterFishGranted=true;
+  }
 }
-applyInventoryRestore();
-if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
-  state.fish=(Number(state.fish)||0)+6;
-  state.pet.message='奶糕送来6条欢迎小鱼干，今天也一起加油吧！';
-  save();localStorage.setItem(STARTER_FISH_KEY,'1');starterFishGranted=true;
+function restoreBackupByKey(k){
+  try{
+    const raw=localStorage.getItem(k),x=parseState(raw);if(!x)return false;
+    const current=localStorage.getItem(K);if(current)localStorage.setItem(BACKUP_LATEST,current);
+    state=normalizeState(x);ensurePetVitals();applyKnownMigrations();save();return true;
+  }catch{return false}
 }
+
+ensurePetVitals();
+updatePetNeeds(nowMs(),false);
+if(loaded.source!=='new')snapshotCurrentRaw();
+migrateLegacyMigrationFlags();
+applyKnownMigrations();
+save();
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
 const rec=(k,d=new Date())=>{
@@ -649,13 +695,17 @@ function usePetItem(id){
   const i=shop.find(x=>x.id===id),r=petReactions[id];
   if(!i||!state.inventory[i.id]||!r)return;
   petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
-  state.inventory[i.id]--;
+
+  state.inventory[i.id]=Math.max(0,(Number(state.inventory[i.id])||0)-1);
+  if(state.inventory[i.id]===0)delete state.inventory[i.id];
+  applyPetEffect(r.effect||{mood:r.mood||3});
+
   setPetVisual('attention',r.notice,'',r.prop);
-  soundRustle();
+  soundRustle();renderPetInventoryOnly();
+
   petDelay(()=>{
-    applyPetEffect(r.effect||{mood:r.mood||3});
     setPetVisual(r.cls,r.text,r.fx,r.prop);
-    playPetSound(r.sound);save();toast(i.name+' 已使用');
+    playPetSound(r.sound);toast(i.name+' 已使用');
     petDelay(()=>{
       let end='奶糕用完'+i.name+'，舒服地坐了下来。';
       if(i.action==='feed')end='奶糕吃完后舔舔嘴巴，满足地坐在旁边。';
@@ -663,7 +713,7 @@ function usePetItem(id){
       if(id==='care-bath')end='奶糕甩了甩毛，终于洗干净啦。';
       if(id==='med-rest')end='奶糕已经睡着了，呼吸慢慢变得平稳。';
       setPetVisual(id==='med-rest'?'sleeping':'happy',end,'',id==='med-rest'?r.prop:'');
-      finishPetAction(end);renderPetInventoryOnly();
+      finishPetAction(end);
     },1900);
   },550);
 }
@@ -703,13 +753,13 @@ function renderRewards(){
   })
 }
 function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成全部任务</p><button class="secondary-btn" id="recover">数据恢复</button><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#recover').onclick=()=>openRecovery();$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
-$('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());snapshotCurrentRaw(localStorage.getItem(K));state={...init(),...d};ensurePetVitals();save();toast('备份已恢复');render()}catch{toast('备份文件无法读取')}e.target.value=''};
+$('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());snapshotCurrentRaw(localStorage.getItem(K));state=normalizeState(d);ensurePetVitals();applyKnownMigrations();save();toast('备份已恢复');render()}catch{toast('备份文件无法读取')}e.target.value=''};
 function openRecovery(){
   const b=availableBackups();
   modal(`<h2>数据恢复</h2>
     <p style="font-size:12px;color:#777">系统会保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
     <div style="font-size:11px;line-height:1.5;background:#fff7ea;border:1px solid #f0dfbd;border-radius:10px;padding:7px 9px;margin:7px 0">
-      已按历史截图恢复 9月18日 6/6、24积分、🐟17。昨天购买的宠物用品具体种类无法从截图确认，所以没有擅自添加错误物品。
+      已确认并保护：9月18日 6/6、至少24积分、至少🐟17，以及猫条×1、纸箱×1、梳毛刷×1。恢复更早的备份时，这些已确认历史记录会自动补回。
     </div>
     <div class="recovery-list">${b.length?b.map((x,i)=>{
       const s=backupSummary(x.state),label=x.key.startsWith(BACKUP_DAILY_PREFIX)?x.key.slice(BACKUP_DAILY_PREFIX.length):(x.key===BACKUP_LATEST?'最近备份':'上一个备份');
