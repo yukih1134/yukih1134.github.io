@@ -117,6 +117,7 @@ function loadStateSafely(){
 }
 const loaded=loadStateSafely();
 let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),vitalsTimer=null;
+let petGesture=null,petInteractive=null,lastTouchMoodAt=0;
 let lastSavedRaw=loaded.raw||null,lastPruneDay='';
 
 function dayKeyForBackup(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -718,19 +719,25 @@ function clearPetTimers(){
   petTimers.forEach(id=>clearTimeout(id));
   petTimers.clear();
 }
+function stopInteractivePetMode(){
+  petGesture=null;petInteractive=null;
+  const stage=$('#petStage');if(stage)stage.classList.remove('v3-interactive','v3-brush-mode','v3-wand-mode');
+  const a=$('#catAvatar');if(a){a.classList.remove('being-petted','v3-walking');a.style.removeProperty('--pet-x');a.style.removeProperty('--pet-y')}
+  resetPetScene();
+}
 function startPetSession(){
   petSession++;
   clearPetTimers();
   stopPetAudio();
   petBusy=false;
-  resetPetScene();
+  stopInteractivePetMode();
 }
 function stopPetSession(){
   petSession++;
   clearPetTimers();
   petBusy=false;
   stopPetAudio();
-  resetPetScene();
+  stopInteractivePetMode();
 }
 function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
@@ -844,6 +851,126 @@ function startPetIdle(){
   schedule();
 }
 function stopPetIdle(){clearPetTimers()}
+function touchRegionFromEvent(e){
+  const a=$('#catAvatar');if(!a)return 'body';
+  const r=a.getBoundingClientRect(),x=(e.clientX-r.left)/Math.max(1,r.width),y=(e.clientY-r.top)/Math.max(1,r.height);
+  if(y<.38)return 'head';
+  if(x>.68&&y>.42)return 'tail';
+  return 'body';
+}
+function touchFxAt(e,symbol='♥'){
+  const layer=$('#petEffects'),stage=$('#petStage');if(!layer||!stage)return;
+  const r=stage.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  layer.innerHTML='<span class="v3-touch-fx" style="left:'+x+'px;top:'+y+'px">'+symbol+'</span>';
+}
+function rewardTouchMood(amount=1){
+  const now=Date.now();
+  if(now-lastTouchMoodAt>12000){lastTouchMoodAt=now;applyPetEffect({mood:amount})}
+}
+function reactToPetTouch(region,stroked,e){
+  if(cur!=='pet'||petBusy)return;
+  petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
+  if(region==='head'){
+    setV3State('cuddle');setPetVisual('cuddle',stroked?'你轻轻摸着奶糕的额头，它把脑袋主动贴向你的手。':'摸到额头啦，奶糕眯起眼睛看着你。','<span class="heart pet-heart-1">♥</span>');
+    touchFxAt(e,'♥');catPurr();rewardTouchMood(1);
+    finishPetAction('奶糕还想再被摸摸头。');return;
+  }
+  if(region==='tail'){
+    setV3State('curious');setPetVisual('attention','碰到尾巴尖，奶糕回头看了看你，尾巴轻轻摆了一下。','<span class="question-mark">?</span>');
+    touchFxAt(e,'✦');rewardTouchMood(.3);
+    finishPetAction('奶糕把尾巴绕到身边，又安心坐好了。');return;
+  }
+  setV3State('cuddle');setPetVisual('purring',stroked?'你顺着背上的毛慢慢摸下去，奶糕舒服得开始呼噜。':'奶糕感受到你的手，身体放松下来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');
+  touchFxAt(e,'♥');catPurr();rewardTouchMood(1);
+  finishPetAction('奶糕舒服地靠近你一点。');
+}
+function bindDirectPetTouch(){
+  const a=$('#catAvatar');if(!a)return;
+  a.onpointerdown=e=>{
+    if(petBusy||petInteractive)return;
+    e.preventDefault();clearPetTimers();
+    try{a.setPointerCapture(e.pointerId)}catch(_){}
+    petGesture={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,distance:0,region:touchRegionFromEvent(e)};
+    a.classList.add('being-petted');
+  };
+  a.onpointermove=e=>{
+    if(!petGesture||petGesture.id!==e.pointerId)return;
+    const dx=e.clientX-petGesture.lastX,dy=e.clientY-petGesture.lastY;
+    petGesture.distance+=Math.hypot(dx,dy);petGesture.lastX=e.clientX;petGesture.lastY=e.clientY;
+    if(petGesture.distance>12)touchFxAt(e,'♡');
+  };
+  const end=e=>{
+    if(!petGesture||petGesture.id!==e.pointerId)return;
+    const g=petGesture;petGesture=null;a.classList.remove('being-petted');
+    try{a.releasePointerCapture(e.pointerId)}catch(_){}
+    reactToPetTouch(g.region,g.distance>24,e);
+  };
+  a.onpointerup=end;a.onpointercancel=()=>{petGesture=null;a.classList.remove('being-petted')};
+}
+function pointInAvatar(clientX,clientY){
+  const a=$('#catAvatar');if(!a)return false;
+  const r=a.getBoundingClientRect();
+  return clientX>=r.left&&clientX<=r.right&&clientY>=r.top&&clientY<=r.bottom;
+}
+function updateInteractionMeter(value,max){
+  const i=$('#v3InteractionMeter i'),b=$('#v3InteractionMeter b');
+  const pct=Math.max(0,Math.min(100,Math.round(value/max*100)));
+  if(i)i.style.width=pct+'%';if(b)b.textContent=pct+'%';
+}
+function finishInteractivePet(effectItem,reaction,message){
+  if(!petInteractive)return;
+  petInteractive.done=true;petInteractive=null;
+  const stage=$('#petStage');if(stage)stage.classList.remove('v3-interactive','v3-brush-mode','v3-wand-mode');
+  setSceneOverlay('');
+  applyPetEffect(reaction.effect||{mood:3});
+  setPetVisual('happy',message,'<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');
+  toast(effectItem.name+' 互动完成');
+  petDelay(()=>{petBusy=false;setPetZone('center');setPetVisual('idle',message);startPetIdle()},1000);
+}
+function beginBrushInteraction(i,r){
+  petBusy=true;clearPetTimers();setPetZone('center');setV3State('curious');
+  petInteractive={type:'brush',i,r,strokes:0,lastX:null,lastY:null,insideDistance:0,done:false};
+  const stage=$('#petStage');stage.classList.add('v3-interactive','v3-brush-mode');
+  setSceneOverlay('<div class="v3-interaction-hud"><strong>给奶糕梳毛</strong><span>用手指拖动梳子，轻轻从头到背梳 6 次</span><div id="v3InteractionMeter" class="v3-interaction-meter"><i></i><b>0%</b></div></div><div id="v3DragTool" class="v3-drag-tool v3-brush-tool">🪮</div>');
+  setPetVisual('attention','梳子拿出来了，奶糕正在等你帮它梳毛。');
+  const move=e=>{
+    if(!petInteractive||petInteractive.type!=='brush')return;
+    e.preventDefault();const sr=stage.getBoundingClientRect(),tool=$('#v3DragTool');
+    if(tool){tool.style.left=(e.clientX-sr.left)+'px';tool.style.top=(e.clientY-sr.top)+'px'}
+    const p=petInteractive;
+    if(p.lastX!==null){
+      const d=Math.hypot(e.clientX-p.lastX,e.clientY-p.lastY);
+      if(pointInAvatar(e.clientX,e.clientY))p.insideDistance+=d;
+      if(p.insideDistance>=55){p.insideDistance=0;p.strokes++;setV3State('brush');soundBrush();touchFxAt(e,'✦');updateInteractionMeter(p.strokes,6)}
+      if(p.strokes>=6){stage.onpointermove=null;stage.onpointerup=null;stage.onpointerdown=null;catPurr();finishInteractivePet(i,r,'梳完毛啦，奶糕舒服地贴过来蹭了蹭你。');return}
+    }
+    p.lastX=e.clientX;p.lastY=e.clientY;
+  };
+  stage.onpointerdown=e=>{if(!petInteractive)return;e.preventDefault();try{stage.setPointerCapture(e.pointerId)}catch(_){ }move(e)};
+  stage.onpointermove=move;stage.onpointerup=e=>{try{stage.releasePointerCapture(e.pointerId)}catch(_){ }};
+}
+function beginWandInteraction(i,r){
+  petBusy=true;clearPetTimers();setPetZone('center');setV3State('curious');
+  petInteractive={type:'wand',i,r,distance:0,lastX:null,lastY:null,done:false};
+  const stage=$('#petStage');stage.classList.add('v3-interactive','v3-wand-mode');
+  setSceneOverlay('<div class="v3-interaction-hud"><strong>陪奶糕玩逗猫棒</strong><span>拖动羽毛，让奶糕追一追</span><div id="v3InteractionMeter" class="v3-interaction-meter"><i></i><b>0%</b></div></div><div id="v3DragTool" class="v3-drag-tool v3-wand-tool">🪶</div>');
+  setPetVisual('attention','逗猫棒一出现，奶糕的眼睛马上跟着羽毛移动。');
+  const move=e=>{
+    if(!petInteractive||petInteractive.type!=='wand')return;
+    e.preventDefault();const sr=stage.getBoundingClientRect(),tool=$('#v3DragTool'),p=petInteractive,a=$('#catAvatar');
+    const x=e.clientX-sr.left,y=e.clientY-sr.top;
+    if(tool){tool.style.left=x+'px';tool.style.top=y+'px'}
+    if(p.lastX!==null){
+      const d=Math.hypot(e.clientX-p.lastX,e.clientY-p.lastY);p.distance+=d;
+      if(d>5){setV3State('walk');if(a){a.style.setProperty('--pet-x',Math.max(-135,Math.min(135,(x/sr.width-.5)*280))+'px');a.style.setProperty('--pet-y',Math.max(-35,Math.min(18,(y/sr.height-.55)*55))+'px')}}
+      updateInteractionMeter(p.distance,520);
+      if(p.distance>=520){stage.onpointermove=null;stage.onpointerup=null;stage.onpointerdown=null;soundToy();finishInteractivePet(i,r,'追到羽毛啦！奶糕开心地甩着尾巴。');return}
+    }
+    p.lastX=e.clientX;p.lastY=e.clientY;
+  };
+  stage.onpointerdown=e=>{if(!petInteractive)return;e.preventDefault();try{stage.setPointerCapture(e.pointerId)}catch(_){ }move(e)};
+  stage.onpointermove=move;stage.onpointerup=e=>{try{stage.releasePointerCapture(e.pointerId)}catch(_){ }};
+}
 function renderPet(){
   updatePetNeeds();
   startPetSession();
@@ -906,6 +1033,7 @@ function renderPet(){
   });
   page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
   page.querySelectorAll('[data-room-item]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.roomItem));
+  bindDirectPetTouch();
   setPetZone(preferredPetZone());
   if(pending)petDelay(()=>petAction(pending),120);else startPetIdle();
 }
@@ -1013,6 +1141,8 @@ function runBathScene(i,r){
   ],()=>finishSceneWithEffect(i,r,'洗香香完成！奶糕的毛又蓬松又干净。','happy'));
 }
 function runBrushScene(i,r){
+  return beginBrushInteraction(i,r);
+  /*
   const brush='<div class="scene-brush-track"><span class="scene-brush-tool">🪮</span></div>';
   runV3Sequence([
     {delay:0,zone:'center',walking:false,state:'curious',cls:'v3-curious',scene:'brush',phase:'start',overlay:brush,message:'梳子靠近，奶糕先转头闻了闻。'},
@@ -1020,6 +1150,7 @@ function runBrushScene(i,r){
     {delay:1350,state:'cuddle',cls:'purring-brush',scene:'brush',phase:'lean',message:'奶糕主动拱起背，还往你的手边靠了靠。',fx:'<span class="heart pet-heart-1">♥</span>',purr:true},
     {delay:1050,state:'happy',cls:'happy',scene:'brush',phase:'done',message:'梳完毛啦，奶糕贴过来蹭了蹭你的手。',hold:400}
   ],()=>finishSceneWithEffect(i,r,'梳完毛啦，奶糕贴过来蹭了蹭你的手。','happy'));
+  */
 }
 function runBoxScene(i,r){
   const box='<div class="scene-cardboard"><span class="box-ear left"></span><span class="box-ear right"></span><b>奶糕的小纸箱 ♡</b></div>';
@@ -1036,6 +1167,7 @@ function runPetItemScene(i,r){
   if(i.action==='feed')return runFeedingScene(i,r);
   if(i.id==='care-bath')return runBathScene(i,r);
   if(i.id==='care-brush')return runBrushScene(i,r);
+  if(i.id==='toy-wand')return beginWandInteraction(i,r);
   if(i.id==='toy-box')return runBoxScene(i,r);
   setPetVisual('attention',r.notice,'',r.prop);
   soundRustle();
