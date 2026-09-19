@@ -492,53 +492,73 @@ function home(){
   updatePetNeeds();
   const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0;
   const nextReward=fixedRewards.find(r=>state.points<r.points);
-  page.innerHTML=`<div class="home-simple">
-    <section class="card overview-card">
-      <div class="overview-progress">
-        <strong>${n}/${cc.length}</strong>
-        <span>今日完成</span>
-        <div class="overview-bar"><i style="width:${p}%"></i></div>
+  page.innerHTML=`<div class="v3-home">
+    <section class="v3-panel v3-summary">
+      <div class="v3-eyebrow">今日概览 · ${d.getMonth()+1}月${d.getDate()}日</div>
+      <div class="v3-summary-main">
+        <div>
+          <strong>${n}/${cc.length}</strong>
+          <span>今日任务</span>
+        </div>
+        <div class="v3-progress"><i style="width:${p}%"></i></div>
       </div>
-      <div class="overview-stats">
-        <div><span>积分</span><b>${state.points}</b></div>
-        <div><span>小鱼干</span><b>${state.fish}</b></div>
-        <div><span>本周</span><b>${weekFull()}/7</b></div>
+      <div class="v3-kpis">
+        <button data-go="rewards"><span>⭐ 积分</span><b>${state.points}</b></button>
+        <button data-go="shop"><span>🐟 小鱼干</span><b>${state.fish}</b></button>
+        <button data-go="calendar"><span>📅 本周</span><b>${weekFull()}/7</b></button>
       </div>
-      <div class="overview-next">
-        <span>${d.getMonth()+1}月${d.getDate()}日</span>
-        <button class="plain-link" data-go="rewards">${nextReward?'下一奖励 '+nextReward.points+'分':'已有奖励可兑换'} ›</button>
-      </div>
+      <p class="v3-next">${nextReward?'距离下一奖励还差 '+Math.max(0,nextReward.points-state.points)+' 分':'已有奖励可以兑换啦 ♡'}</p>
     </section>
 
-    <section class="card home-pet-simple home-pet-v2">
-      <div class="home-pet-visual home-pet-scene ${dayPart()}">
-        <div class="home-scene-window"><i></i></div>
-        <div class="home-scene-rug"></div>
-        <div class="home-cat-wrap">${petArtImg('idle','home-naigao-art')}</div>
-        <span class="home-heart">♥</span>
+    <section class="v3-panel v3-pet-preview">
+      <div class="v3-pet-room-mini">
+        <div class="v3-mini-window"></div><div class="v3-mini-rug"></div>
+        <div class="v3-mini-cat">${petArtImg('idle','v3-home-cat')}</div>
+        <div class="v3-speech">主人～<br>今天也一起加油吧♡</div>
       </div>
-      <div class="home-pet-info">
-        <div class="home-pet-title"><div><b>奶糕 <em>♡</em></b><span>今天也在陪你一起努力</span></div><button class="plain-link pet-enter-btn" data-go="pet">去小屋 ›</button></div>
-        <div class="home-pet-vitals">
-          <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${petDisplay(state.pet.hunger)}</span>
-          <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${petDisplay(state.pet.cleanliness)}</span>
-          <span class="${petStatusClass(state.pet.health)}">❤️ ${petDisplay(state.pet.health)}</span>
-          <span>🐟 ${state.fish}</span>
+      <div class="v3-pet-preview-copy">
+        <div class="v3-pet-name"><div><b>奶糕 ♡</b><span>今天也在陪你一起努力</span></div><button data-go="pet">去小屋 ›</button></div>
+        <div class="v3-vital-chips">
+          <span>❤️ ${petDisplay(state.pet.health)}</span>
+          <span>🍽️ ${petDisplay(state.pet.hunger)}</span>
+          <span>🫧 ${petDisplay(state.pet.cleanliness)}</span>
+          <span>😊 ${petDisplay(state.pet.mood)}</span>
         </div>
         <p>${esc(petConditionMessage())}</p>
       </div>
     </section>
 
-    <section class="card task-board-card">
-      <div class="board-head">
-        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成 · 今日🐟 ${dailyFishEarned(key())}/${DAILY_FISH_CAP}</span></div>
-        <button class="plain-link" data-go="calendar">查看日历 ›</button>
+    <section class="v3-panel v3-today">
+      <div class="v3-section-head">
+        <div><span class="v3-eyebrow">学习打卡</span><h2>今日任务</h2></div>
+        <button data-go="calendar">查看日历 ›</button>
       </div>
-      <div class="task-board">${tt.map(boardTaskCard).join('')}</div>
+      <div class="v3-task-list">${tt.map(t=>{
+        const ok=done(t.id),m=meta[t.subject]||['任务','•','#f5ecef'];
+        return `<button class="v3-task ${ok?'done':''}" data-board-check="${t.id}" ${ok?'disabled':''}>
+          <span class="v3-task-icon" style="--task-bg:${m[2]}">${t.icon}</span>
+          <span class="v3-task-copy"><b>${esc(t.name)}</b><small>${m[0]}</small></span>
+          <span class="v3-reward">${t.builtin?'⭐ +2 · 🐟 +1':'记录'}</span>
+          <span class="v3-check">${ok?'✓':''}</span>
+        </button>`;
+      }).join('')}</div>
+    </section>
+
+    <section class="v3-panel v3-shortcuts">
+      <div class="v3-section-head"><div><span class="v3-eyebrow">陪伴日常</span><h2>和奶糕一起</h2></div></div>
+      <div class="v3-shortcut-grid">
+        <button data-go="pet" data-pet-shortcut="feed"><span>🥣</span><b>喂食</b><small>照顾饱腹</small></button>
+        <button data-go="pet" data-pet-shortcut="bath"><span>🫧</span><b>洗澡</b><small>保持清洁</small></button>
+        <button data-go="pet" data-pet-shortcut="pet"><span>🤚</span><b>摸摸</b><small>增加陪伴</small></button>
+        <button data-go="shop"><span>🛍️</span><b>商城</b><small>准备用品</small></button>
+      </div>
     </section>
   </div>`;
   bindGo();
   page.querySelectorAll('[data-board-check]').forEach(b=>b.onclick=()=>complete(b.dataset.boardCheck));
+  page.querySelectorAll('[data-pet-shortcut]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();sessionStorage.setItem('miaomiao-pet-action',b.dataset.petShortcut);go('pet');
+  });
   clearInterval(timer);
 }
 function boardTaskCard(t){
@@ -637,7 +657,34 @@ function taskModal(s,id){
     syncTodayPlan();save();closeModal();subject(s)
   }
 }
-function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼干商城</h1><p>学习赚小鱼干，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>{const owned=i.type==='durable'&&(state.inventory[i.id]||0)>0;return `<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>${i.type==='durable'?'耐用品 · 买一次可重复使用':'消耗品 · 使用后会减少'}</p><button data-buy="${i.id}" ${owned?'disabled':''}>${owned?'✓ 已拥有':'🐟 '+i.cost+' · 兑换'}</button></div>`}).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(!i)return;if(i.type==='durable'&&(state.inventory[i.id]||0)>0)return toast('这个耐用品已经拥有');if(state.fish<i.cost)return toast('小鱼干还不够');state.fish-=i.cost;state.inventory[i.id]=i.type==='durable'?1:(state.inventory[i.id]||0)+1;logEconomy('shop-purchase',{itemId:i.id,itemName:i.name,deltaFish:-i.cost,deltaPoints:0,itemType:i.type});save();toast(i.name+' 已放进宠物用品');renderShop()})}
+function renderShop(){
+  const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);
+  const tabs=[['食物','🍚'],['玩具','🪶'],['洗漱','🧴'],['医疗','🩺']];
+  page.innerHTML=`<div class="v3-page v3-shop-page">
+    <section class="v3-page-hero">
+      <div><span class="v3-eyebrow">奶糕生活馆</span><h1>商城</h1><p>用学习赚来的小鱼干，为奶糕准备生活用品。</p></div>
+      <div class="v3-balance">🐟 <b>${state.fish}</b><span>小鱼干</span></div>
+    </section>
+    <div class="v3-shop-tabs">${tabs.map(([name,icon])=>`<button class="${name===c?'active':''}" data-cat="${name}"><span>${icon}</span>${name}</button>`).join('')}</div>
+    <div class="v3-shop-grid">${items.map(i=>{
+      const owned=i.type==='durable'&&(state.inventory[i.id]||0)>0;
+      return `<article class="v3-shop-card">
+        <div class="v3-shop-art">${i.emoji}</div>
+        <div><h3>${i.name}</h3><p>${i.type==='durable'?'耐用品 · 可重复使用':'消耗品 · 使用后减少'}</p></div>
+        <div class="v3-shop-foot"><span>🐟 ${i.cost}</span><button data-buy="${i.id}" ${owned?'disabled':''}>${owned?'已拥有':'购买'}</button></div>
+      </article>`;
+    }).join('')}</div>
+  </div>`;
+  page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});
+  page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{
+    const i=shop.find(x=>x.id===b.dataset.buy);if(!i)return;
+    if(i.type==='durable'&&(state.inventory[i.id]||0)>0)return toast('这个耐用品已经拥有');
+    if(state.fish<i.cost)return toast('小鱼干还不够');
+    state.fish-=i.cost;state.inventory[i.id]=i.type==='durable'?1:(state.inventory[i.id]||0)+1;
+    logEconomy('shop-purchase',{itemId:i.id,itemName:i.name,deltaFish:-i.cost,deltaPoints:0,itemType:i.type});
+    save();toast(i.name+' 已放进宠物用品');renderShop();
+  });
+}
 function playPetSound(name){
   setPlaybackAudioSession();unlockAudio();
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
