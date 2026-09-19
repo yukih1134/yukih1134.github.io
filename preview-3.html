@@ -10,12 +10,16 @@
 <meta name="apple-mobile-web-app-title" content="喵喵打卡">
 <meta name="format-detection" content="telephone=no">
 <title>奶糕 3.0 预览版 · 学习陪伴工作台</title>
+<style>
+#previewLoadError{position:fixed;left:12px;right:12px;top:12px;z-index:99999;background:#fff3f5;border:1px solid #efb9c8;border-radius:14px;padding:10px 12px;color:#7b4455;font:600 13px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;box-shadow:0 8px 24px rgba(116,69,84,.12)}
+</style>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/styles.css">
-<link rel="stylesheet" href="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/styles-v3.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yukih1134/yukih1134.github.io@5f8c2a3e4753be0bf25c6d2cb2c496557ed16361/styles.css" onerror="document.getElementById('previewLoadError').hidden=false">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/yukih1134/yukih1134.github.io@5f8c2a3e4753be0bf25c6d2cb2c496557ed16361/styles-v3.css" onerror="document.getElementById('previewLoadError').hidden=false">
 </head>
 <body>
+<div id="previewLoadError" hidden>3.0 预览资源没有完整加载。请刷新页面；如果仍然看到这条提示，把截图发给我。</div>
 <div id="orientationFrame" class="orientation-frame">
 <div class="app-shell">
   <aside class="sidebar"><nav id="nav"></nav></aside>
@@ -34,10 +38,16 @@
 <div id="modalRoot"></div>
 </div>
 <input id="importInput" type="file" accept="application/json" hidden>
-<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/pet-assets.js"></script>
-<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/pet-v3-sprite.js"></script>
-<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/pet-v3-room.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/yukih1134/yukih1134.github.io@5f8c2a3e4753be0bf25c6d2cb2c496557ed16361/pet-assets.js" onerror="document.getElementById('previewLoadError').hidden=false"></script>
+<script src="https://cdn.jsdelivr.net/gh/yukih1134/yukih1134.github.io@5f8c2a3e4753be0bf25c6d2cb2c496557ed16361/pet-v3-sprite.js" onerror="document.getElementById('previewLoadError').hidden=false"></script>
+<script src="https://cdn.jsdelivr.net/gh/yukih1134/yukih1134.github.io@5f8c2a3e4753be0bf25c6d2cb2c496557ed16361/pet-v3-room.js" onerror="document.getElementById('previewLoadError').hidden=false"></script>
 <script>window.MIAOMIAO_PREVIEW_MODE=true;</script>
-<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/app.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/yukih1134/yukih1134.github.io@5f8c2a3e4753be0bf25c6d2cb2c496557ed16361/app.js" onerror="document.getElementById('previewLoadError').hidden=false"></script>
+<script>
+setTimeout(function(){
+  var ok=document.querySelector('.v3-home,.v3-page,.v3-pet-page');
+  if(!ok) document.getElementById('previewLoadError').hidden=false;
+},2500);
+</script>
 </body>
 </html>
