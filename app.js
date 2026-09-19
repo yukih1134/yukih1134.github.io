@@ -15,11 +15,11 @@ const defaults=[
 ];
 const fixedRewards=[{id:'tv',title:'看电视半小时',emoji:'📺',points:36},{id:'snack',title:'小零食',emoji:'🍪',points:60},{id:'toy',title:'小玩具',emoji:'🎁',points:84}];
 const shop=[
-['food-kibble','食物','猫粮','🥣',5,'feed'],['food-treat','食物','猫条','🐟',3,'feed'],['food-can','食物','主食罐头','🥫',8,'feed'],['food-freeze','食物','冻干','🍗',6,'feed'],
-['toy-wand','玩具','逗猫棒','🪶',7,'play'],['toy-ball','玩具','小球','⚽',5,'play'],['toy-scratch','玩具','猫抓板','🧶',10,'play'],['toy-box','玩具','纸箱','📦',3,'play'],
-['care-brush','洗漱','梳毛刷','🪮',5,'groom'],['care-bath','洗漱','洗护套装','🫧',9,'bath'],['care-towel','洗漱','小毛巾','🧺',4,'groom'],['care-nail','洗漱','指甲护理','✨',7,'groom'],
-['med-kit','医疗','护理包','🧰',8,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',12,'treat'],['med-rest','医疗','休息垫','🛏️',6,'rest']
-].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5]}));
+['food-kibble','食物','猫粮','🥣',8,'feed','consumable'],['food-treat','食物','猫条','🐟',3,'feed','consumable'],['food-can','食物','主食罐头','🥫',8,'feed','consumable'],['food-freeze','食物','冻干','🍗',6,'feed','consumable'],
+['toy-wand','玩具','逗猫棒','🪶',7,'play','durable'],['toy-ball','玩具','小球','⚽',5,'play','durable'],['toy-scratch','玩具','猫抓板','🧶',10,'play','durable'],['toy-box','玩具','纸箱','📦',3,'play','durable'],
+['care-brush','洗漱','梳毛刷','🪮',5,'groom','durable'],['care-bath','洗漱','洗护套装','🫧',9,'bath','consumable'],['care-towel','洗漱','小毛巾','🧺',4,'groom','durable'],['care-nail','洗漱','指甲护理','✨',7,'groom','durable'],
+['med-kit','医疗','护理包','🧰',8,'treat','consumable'],['med-cone','医疗','护理头套','🔶',9,'treat','durable'],['med-check','医疗','体检券','🩺',12,'treat','consumable'],['med-rest','医疗','休息垫','🛏️',6,'rest','durable']
+].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5],type:x[6]}));
 const petReactions={
 'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4,effect:{hunger:34,mood:3}},
 'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5,effect:{hunger:18,mood:5}},
@@ -45,17 +45,18 @@ const BACKUP_DAILY_PREFIX='miaomiao-backup-day-';
 const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
 const EVIDENCE_RESTORE_KEY='miaomiao-evidence-restore-2026-09-18-v1';
 const INVENTORY_RESTORE_KEY='miaomiao-inventory-restore-2026-09-18-v1';
-const DATA_SCHEMA=3;
-const KNOWN_SEP18_IDS=['cn-write','cn-read','math-homework','en-listen','en-raz','sp-badminton'];
+const DATA_SCHEMA=4;
+const DAILY_FISH_CAP=6;
+const PET_OFFLINE_CAP_HOURS=12;
 
 const petDefaults=()=>({
   mood:85,hunger:84,cleanliness:90,health:100,
   message:'等你完成任务，我们一起玩吧！',
-  lastUpdated:nowMs(),vitalsVersion:1
+  lastUpdated:nowMs(),vitalsVersion:2
 });
 const init=()=>({
   schema:DATA_SCHEMA,points:0,fish:0,tasks:structuredClone(defaults),
-  records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],
+  records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],economyLog:[],
   shopCat:'食物',migrations:{}
 });
 function isPlainObject(x){return !!x&&typeof x==='object'&&!Array.isArray(x)}
@@ -98,6 +99,7 @@ function normalizeState(input){
   out.pet={...petDefaults(),...(isPlainObject(src.pet)?src.pet:{})};
   out.customRewards=Array.isArray(src.customRewards)?src.customRewards.filter(r=>isPlainObject(r)&&typeof r.title==='string'&&Number(r.points)>=2).map(r=>({...r,points:Math.round(Number(r.points))})):[];
   out.rewardLog=Array.isArray(src.rewardLog)?src.rewardLog.filter(isPlainObject):[];
+  out.economyLog=Array.isArray(src.economyLog)?src.economyLog.filter(isPlainObject).slice(-1000):[];
   out.shopCat=['食物','玩具','洗漱','医疗'].includes(src.shopCat)?src.shopCat:'食物';
   out.migrations=isPlainObject(src.migrations)?{...src.migrations}:{};
   return out;
@@ -114,7 +116,7 @@ function loadStateSafely(){
   return {state:init(),source:'new',raw:null};
 }
 const loaded=loadStateSafely();
-let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false,evidenceRestoreApplied=false,inventoryRestoreApplied=false;
+let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),vitalsTimer=null;
 let lastSavedRaw=loaded.raw||null,lastPruneDay='';
 
 function dayKeyForBackup(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -178,7 +180,8 @@ function backupSummary(x){
   const inv=Object.values(n.inventory).reduce((a,b)=>a+(Number(b)||0),0);
   return {points:n.points,fish:n.fish,dates,inventory:inv};
 }
-function clampPet(v){return Math.max(0,Math.min(100,Math.round(Number(v)||0)))}
+function clampPet(v){const n=Number(v);return Math.max(0,Math.min(100,Number.isFinite(n)?Math.round(n*1000)/1000:0))}
+function petDisplay(v){return Math.round(clampPet(v))}
 function ensurePetVitals(){
   const p=isPlainObject(state.pet)?state.pet:{},legacy=!p.vitalsVersion;
   state.pet={...petDefaults(),...p};
@@ -189,8 +192,9 @@ function ensurePetVitals(){
   if(legacy){
     state.pet.hunger=72;state.pet.cleanliness=78;state.pet.health=96;
     state.pet.mood=Math.min(Number(p.mood)||85,88);
-    state.pet.lastUpdated=nowMs();state.pet.vitalsVersion=1;
+    state.pet.lastUpdated=nowMs();
   }
+  state.pet.vitalsVersion=2;
 }
 function petConditionMessage(){
   const p=state.pet;
@@ -205,12 +209,12 @@ function petConditionMessage(){
 }
 function updatePetNeeds(now=nowMs(),persist=true){
   ensurePetVitals();
-  const p=state.pet;
-  let elapsed=Math.max(0,Math.min((now-(Number(p.lastUpdated)||now))/3600000,24*14));
-  if(elapsed<0.02){p.lastUpdated=now;if(persist)save();return}
+  const p=state.pet,last=Number(p.lastUpdated)||now;
+  const elapsed=Math.max(0,Math.min((now-last)/3600000,PET_OFFLINE_CAP_HOURS));
+  if(elapsed<=0)return;
   let remaining=elapsed;
   while(remaining>0){
-    const step=Math.min(1,remaining);
+    const step=Math.min(.25,remaining);
     p.hunger=clampPet(p.hunger-3*step);
     p.cleanliness=clampPet(p.cleanliness-1.35*step);
     const stressed=p.hunger<22||p.cleanliness<20,mildlyStressed=p.hunger<38||p.cleanliness<35;
@@ -245,24 +249,20 @@ function migrateLegacyMigrationFlags(){
     localStorage.removeItem(INVENTORY_RESTORE_KEY);
   }catch(e){}
 }
+function logEconomy(type,details={}){
+  state.economyLog=Array.isArray(state.economyLog)?state.economyLog:[];
+  state.economyLog.push({id:'e-'+nowMs()+'-'+Math.random().toString(36).slice(2,7),at:new Date().toISOString(),type,...details,balanceFish:state.fish,balancePoints:state.points});
+  if(state.economyLog.length>1000)state.economyLog=state.economyLog.slice(-1000);
+}
 function applyKnownMigrations(){
   state.migrations=isPlainObject(state.migrations)?state.migrations:{};
-  if(!state.migrations.sep18Evidence){
-    const d='2026-09-18',r=isPlainObject(state.records[d])?state.records[d]:{};
-    const existing=Array.isArray(r.completed)?r.completed:[],planned=Array.isArray(r.planned)?r.planned:KNOWN_SEP18_IDS;
-    state.records[d]={...r,planned:[...new Set([...planned,...KNOWN_SEP18_IDS])],completed:[...new Set([...existing,...KNOWN_SEP18_IDS])]};
-    state.points=Math.max(state.points,24);state.fish=Math.max(state.fish,17);
-    state.migrations.sep18Evidence=true;evidenceRestoreApplied=true;
+  // v4 deliberately stops manufacturing Sep-18 history or starter fish on new devices.
+  // Existing restored records/balances are preserved exactly as loaded.
+  if(!state.migrations.v4EconomyLedger){
+    logEconomy('legacy-snapshot',{note:'v4 ledger start; pre-v4 balance preserved',deltaFish:0,deltaPoints:0});
+    state.migrations.v4EconomyLedger=true;
   }
-  if(!state.migrations.sep18Inventory){
-    state.inventory['food-treat']=Math.max(Number(state.inventory['food-treat'])||0,1);
-    state.inventory['toy-box']=Math.max(Number(state.inventory['toy-box'])||0,1);
-    state.inventory['care-brush']=Math.max(Number(state.inventory['care-brush'])||0,1);
-    state.migrations.sep18Inventory=true;inventoryRestoreApplied=true;
-  }
-  if(!state.migrations.starterFish){
-    state.fish+=6;state.migrations.starterFish=true;starterFishGranted=true;
-  }
+  state.migrations.starterFish=true;
 }
 function restoreBackupByKey(k){
   try{
@@ -287,6 +287,13 @@ const rec=(k,d=new Date())=>{
     return state.records[k];
   };
   function syncTodayPlan(){const d=new Date(),r=rec(key(d),d);r.planned=core(d).map(t=>t.id);save()}
+function dailyFishEarned(k=key()){
+  const r=state.records[k];
+  if(!r)return 0;
+  if(Number.isFinite(Number(r.fishEarned)))return Math.max(0,Math.min(DAILY_FISH_CAP,Math.floor(Number(r.fishEarned))));
+  const completed=Array.isArray(r.completed)?r.completed:[];
+  return Math.min(DAILY_FISH_CAP,completed.filter(id=>state.tasks.some(t=>t.id===id&&t.builtin)).length);
+}
 const full=d=>{
     const r=state.records[key(d)], ids=Array.isArray(r?.planned)?r.planned:core(d).map(t=>t.id);
     return ids.length>0&&ids.every(id=>(r?.completed||[]).includes(id));
@@ -295,44 +302,71 @@ const weekStart=(d=new Date())=>{let x=new Date(d),n=(x.getDay()+6)%7;x.setDate(
 const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{let d=new Date(s);d.setDate(s.getDate()+i);return d})};
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function taskRewardIcons(){
+function taskRewardIcons(rewardEligible=true){
+  if(!rewardEligible)return '<span class="task-reward-icons"><span class="task-reward-chip" title="自定义任务仅记录完成">记录</span></span>';
   return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加1">
     <span class="task-reward-chip task-reward-point" title="积分 +2">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6.5l1.7 3.2 3.6.5-2.6 2.5.6 3.6-3.3-1.7-3.3 1.7.6-3.6-2.6-2.5 3.6-.5z"/></svg><b>+2</b>
     </span>
-    <span class="task-reward-chip task-reward-fish" title="小鱼干 +1">
+    <span class="task-reward-chip task-reward-fish" title="小鱼干 +1，每天最多6条">
       <svg viewBox="0 0 28 20" aria-hidden="true"><path d="M3 10c4-5 9-7 14-5 2 .8 3.8 2.2 5 4l4-3v8l-4-3c-1.2 1.8-3 3.2-5 4-5 2-10 0-14-5z"/><circle cx="17" cy="8" r="1.2"/></svg><b>+1</b>
     </span>
   </span>`
 }
 function catSvg(kind='large'){
-  return `<svg class="cat-svg ${kind}" viewBox="0 0 260 200" aria-hidden="true">
-    <g class="cat-tail-g"><path class="cat-tail-shape" d="M184 137 C238 126 246 86 219 73 C203 65 188 77 198 91 C207 104 226 93 224 78" fill="none" stroke="#d77a32" stroke-width="22" stroke-linecap="round"/></g>
-    <g class="cat-body-g">
-      <ellipse cx="142" cy="139" rx="70" ry="47" fill="#e98a3a"/>
-      <path d="M95 137 C106 101 128 92 156 98 C181 103 198 124 199 151 C174 174 116 177 85 158 Z" fill="#ec9345"/>
-      <path d="M111 109 C118 128 119 151 113 170" fill="none" stroke="#c96d2c" stroke-width="9" stroke-linecap="round"/>
-      <path d="M144 102 C148 120 150 139 147 158" fill="none" stroke="#c96d2c" stroke-width="8" stroke-linecap="round"/>
-      <ellipse cx="115" cy="169" rx="24" ry="10" fill="#f7cda5"/>
-      <ellipse cx="171" cy="169" rx="25" ry="10" fill="#f7cda5"/>
-      <path class="cat-front-paw" d="M111 136 C101 148 99 164 106 174" fill="none" stroke="#e98a3a" stroke-width="18" stroke-linecap="round"/>
-    </g>
-    <g class="cat-head-g">
-      <path d="M84 65 L92 29 L119 52 Z" fill="#e98a3a" stroke="#b85f25" stroke-width="4"/>
-      <path d="M154 52 L181 29 L186 69 Z" fill="#e98a3a" stroke="#b85f25" stroke-width="4"/>
-      <path d="M94 43 L98 32 L109 47 Z" fill="#f4a5a5"/>
-      <path d="M166 47 L178 33 L179 51 Z" fill="#f4a5a5"/>
-      <ellipse cx="136" cy="82" rx="58" ry="48" fill="#ee9649" stroke="#b85f25" stroke-width="4"/>
-      <path d="M104 55 L119 64 M100 69 L118 73 M168 56 L153 65 M174 70 L155 74" stroke="#b85f25" stroke-width="5" stroke-linecap="round"/>
-      <g class="cat-eyes">
-        <ellipse cx="116" cy="80" rx="7" ry="10" fill="#24354f"/><ellipse cx="156" cy="80" rx="7" ry="10" fill="#24354f"/>
-        <circle cx="118" cy="77" r="2.2" fill="#fff"/><circle cx="158" cy="77" r="2.2" fill="#fff"/>
+  const uid='ng-'+Math.random().toString(36).slice(2,8);
+  return `<svg class="cat-svg ${kind}" viewBox="0 0 280 220" aria-hidden="true">
+    <defs>
+      <linearGradient id="${uid}-fur" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc278"/><stop offset=".52" stop-color="#ee9447"/><stop offset="1" stop-color="#cf6d2c"/></linearGradient>
+      <linearGradient id="${uid}-cream" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#fffaf4"/><stop offset="1" stop-color="#f7dcc6"/></linearGradient>
+      <radialGradient id="${uid}-eye" cx=".35" cy=".25" r=".75"><stop offset="0" stop-color="#ffd78d"/><stop offset=".5" stop-color="#9b5a2a"/><stop offset="1" stop-color="#2e211d"/></radialGradient>
+      <linearGradient id="${uid}-collar" x1="0" x2="1"><stop offset="0" stop-color="#f7a7bb"/><stop offset=".5" stop-color="#ef789c"/><stop offset="1" stop-color="#d95f87"/></linearGradient>
+      <radialGradient id="${uid}-bell" cx=".35" cy=".25" r=".8"><stop offset="0" stop-color="#fff2a4"/><stop offset=".45" stop-color="#f4c85b"/><stop offset="1" stop-color="#b88421"/></radialGradient>
+      <filter id="${uid}-shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#9b5d36" flood-opacity=".20"/></filter>
+      <filter id="${uid}-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>
+    </defs>
+    <ellipse class="cat-ground-shadow" cx="143" cy="195" rx="78" ry="13" fill="#c9927a" opacity=".16" filter="url(#${uid}-soft)"/>
+    <g filter="url(#${uid}-shadow)">
+      <g class="cat-tail-g">
+        <path class="cat-tail-shape" d="M195 153 C249 150 264 115 241 94 C226 80 204 88 208 107 C211 123 235 122 240 105" fill="none" stroke="#d97a32" stroke-width="27" stroke-linecap="round"/>
+        <path d="M206 148 C236 141 251 124 249 110" fill="none" stroke="#f1a257" stroke-width="7" stroke-linecap="round" opacity=".75"/>
       </g>
-      <g class="cat-eyes-closed"><path d="M108 82 Q116 88 124 82 M148 82 Q156 88 164 82" fill="none" stroke="#24354f" stroke-width="4" stroke-linecap="round"/></g>
-      <path d="M131 93 Q136 98 141 93 Q136 88 131 93" fill="#a65b52"/>
-      <path d="M136 98 Q132 106 124 104 M136 98 Q140 106 148 104" fill="none" stroke="#6b4a3d" stroke-width="3" stroke-linecap="round"/>
-      <path d="M103 97 L72 92 M103 103 L69 104 M169 97 L201 91 M169 103 L204 105" stroke="#6b4a3d" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M105 111 Q136 132 168 111 Q164 137 136 141 Q109 136 105 111" fill="#f9dcc2" opacity=".75"/>
+      <g class="cat-body-g">
+        <ellipse cx="145" cy="150" rx="76" ry="52" fill="url(#${uid}-fur)"/>
+        <ellipse cx="145" cy="149" rx="52" ry="43" fill="url(#${uid}-cream)" opacity=".98"/>
+        <path d="M93 141 C103 112 126 101 155 104 C184 108 205 132 205 159 C180 185 112 185 80 165 Z" fill="url(#${uid}-fur)"/>
+        <path d="M125 119 C132 135 135 158 130 180" fill="none" stroke="#c76a2f" stroke-width="8" stroke-linecap="round" opacity=".72"/>
+        <path d="M164 110 C170 132 171 153 168 174" fill="none" stroke="#c76a2f" stroke-width="7" stroke-linecap="round" opacity=".7"/>
+        <ellipse cx="110" cy="183" rx="27" ry="13" fill="url(#${uid}-cream)"/>
+        <ellipse cx="178" cy="183" rx="27" ry="13" fill="url(#${uid}-cream)"/>
+        <ellipse cx="105" cy="181" rx="7" ry="4" fill="#f5a3a8" opacity=".85"/><ellipse cx="116" cy="183" rx="6" ry="4" fill="#f5a3a8" opacity=".85"/>
+        <ellipse cx="173" cy="183" rx="6" ry="4" fill="#f5a3a8" opacity=".85"/><ellipse cx="184" cy="181" rx="7" ry="4" fill="#f5a3a8" opacity=".85"/>
+        <path class="cat-front-paw" d="M112 145 C100 158 99 174 107 184" fill="none" stroke="#f0a052" stroke-width="21" stroke-linecap="round"/>
+        <path d="M111 176 C108 180 109 184 112 187" fill="none" stroke="#fff2e6" stroke-width="11" stroke-linecap="round"/>
+      </g>
+      <g class="cat-head-g">
+        <path d="M83 72 L92 28 Q95 19 103 30 L125 55 Z" fill="url(#${uid}-fur)" stroke="#b65d2a" stroke-width="3.5"/>
+        <path d="M162 55 L184 29 Q191 19 193 32 L199 75 Z" fill="url(#${uid}-fur)" stroke="#b65d2a" stroke-width="3.5"/>
+        <path d="M94 48 L100 31 L114 51 Z" fill="#f6a6ad"/><path d="M174 51 L188 31 L190 54 Z" fill="#f6a6ad"/>
+        <ellipse cx="142" cy="92" rx="65" ry="56" fill="url(#${uid}-fur)" stroke="#b65d2a" stroke-width="3.5"/>
+        <path d="M91 102 Q99 128 119 137 Q142 149 167 137 Q187 126 193 100 Q184 119 166 124 Q141 132 117 124 Q99 119 91 102Z" fill="url(#${uid}-cream)"/>
+        <path d="M104 59 L120 68 M99 73 L118 78 M177 60 L160 69 M184 75 L163 79" stroke="#bd632c" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+        <path d="M139 45 L139 62 M126 48 L132 64 M153 48 L147 64" stroke="#bd632c" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+        <g class="cat-eyes">
+          <ellipse cx="119" cy="91" rx="14" ry="18" fill="url(#${uid}-eye)" stroke="#4d3127" stroke-width="2"/>
+          <ellipse cx="165" cy="91" rx="14" ry="18" fill="url(#${uid}-eye)" stroke="#4d3127" stroke-width="2"/>
+          <ellipse cx="115" cy="85" rx="5.5" ry="7" fill="#fff" opacity=".95"/><circle cx="123" cy="99" r="2.5" fill="#fff" opacity=".75"/>
+          <ellipse cx="161" cy="85" rx="5.5" ry="7" fill="#fff" opacity=".95"/><circle cx="169" cy="99" r="2.5" fill="#fff" opacity=".75"/>
+        </g>
+        <g class="cat-eyes-closed"><path d="M108 94 Q119 102 130 94 M154 94 Q165 102 176 94" fill="none" stroke="#4d3127" stroke-width="4.5" stroke-linecap="round"/></g>
+        <path d="M136 108 Q142 114 148 108 Q142 102 136 108" fill="#e67d89"/>
+        <path d="M142 113 Q138 122 128 120 M142 113 Q146 122 156 120" fill="none" stroke="#6c493d" stroke-width="3" stroke-linecap="round"/>
+        <path d="M107 111 L72 104 M108 118 L70 118 M176 111 L211 103 M176 118 L214 118" stroke="#7a5545" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
+        <ellipse cx="104" cy="110" rx="8" ry="4" fill="#f3a3ad" opacity=".35"/><ellipse cx="180" cy="110" rx="8" ry="4" fill="#f3a3ad" opacity=".35"/>
+        <path d="M107 132 Q142 149 178 132" fill="none" stroke="#fff5ec" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+        <path d="M110 137 Q142 151 175 137" fill="none" stroke="url(#${uid}-collar)" stroke-width="8" stroke-linecap="round"/>
+        <g class="cat-bell-g"><circle cx="143" cy="147" r="11" fill="url(#${uid}-bell)" stroke="#a86f18" stroke-width="2"/><path d="M139 145 Q143 140 147 145 Q143 151 139 145" fill="#9b6418"/></g>
+      </g>
     </g>
   </svg>`;
 }
@@ -440,14 +474,19 @@ function home(){
       </div>
     </section>
 
-    <section class="card home-pet-simple">
-      <div class="home-pet-visual">${catSvg('mini')}</div>
+    <section class="card home-pet-simple home-pet-v2">
+      <div class="home-pet-visual home-pet-scene ${dayPart()}">
+        <div class="home-scene-window"><i></i></div>
+        <div class="home-scene-rug"></div>
+        <div class="home-cat-wrap">${catSvg('mini')}</div>
+        <span class="home-heart">♥</span>
+      </div>
       <div class="home-pet-info">
-        <div class="home-pet-title"><div><b>奶糕</b><span>我的橘猫伙伴</span></div><button class="plain-link" data-go="pet">去互动 ›</button></div>
+        <div class="home-pet-title"><div><b>奶糕 <em>♡</em></b><span>今天也在陪你一起努力</span></div><button class="plain-link pet-enter-btn" data-go="pet">去小屋 ›</button></div>
         <div class="home-pet-vitals">
-          <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${state.pet.hunger}</span>
-          <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${state.pet.cleanliness}</span>
-          <span class="${petStatusClass(state.pet.health)}">❤️ ${state.pet.health}</span>
+          <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${petDisplay(state.pet.hunger)}</span>
+          <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${petDisplay(state.pet.cleanliness)}</span>
+          <span class="${petStatusClass(state.pet.health)}">❤️ ${petDisplay(state.pet.health)}</span>
           <span>🐟 ${state.fish}</span>
         </div>
         <p>${esc(petConditionMessage())}</p>
@@ -456,7 +495,7 @@ function home(){
 
     <section class="card task-board-card">
       <div class="board-head">
-        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成</span></div>
+        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成 · 今日🐟 ${dailyFishEarned(key())}/${DAILY_FISH_CAP}</span></div>
         <button class="plain-link" data-go="calendar">查看日历 ›</button>
       </div>
       <div class="task-board">${tt.map(boardTaskCard).join('')}</div>
@@ -471,7 +510,7 @@ function boardTaskCard(t){
   return `<button class="board-task ${ok?'done':''}" data-board-check="${t.id}" ${ok?'disabled':''} aria-label="${esc(t.name)}，${ok?'已完成':'点击完成'}">
     <span class="board-task-icon-stack">
       <span class="board-task-icon" style="--dot:${m[2]}">${t.icon}</span>
-      ${taskRewardIcons()}
+      ${taskRewardIcons(!!t.builtin)}
     </span>
     <span class="board-task-copy"><b>${esc(t.name)}</b><small>${m[0]}</small></span>
     <span class="board-check" aria-hidden="true">${ok?'✓':''}</span>
@@ -480,16 +519,27 @@ function boardTaskCard(t){
 function taskCard(t){
   const ok=done(t.id);
   return `<button class="task-card simple-task-card ${ok?'done':''}" data-check="${t.id}" ${ok?'disabled':''}>
-    <span class="simple-task-icon-stack"><span class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</span>${taskRewardIcons()}</span>
+    <span class="simple-task-icon-stack"><span class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</span>${taskRewardIcons(!!t.builtin)}</span>
     <span class="task-name">${esc(t.name)}</span>
     <span class="simple-check">${ok?'✓':''}</span>
   </button>`
 }
 function complete(id){
-  const r=rec(key(),new Date());if(r.completed.includes(id))return;
-  r.completed.push(id);state.points+=2;state.fish++;updatePetNeeds(nowMs(),false);state.pet.mood=clampPet(state.pet.mood+2);
-  state.pet.message='收到一条小鱼干！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
-  soundCheckin();toast('完成啦！+2分 · 🐟 +1');
+  const today=key(),r=rec(today,new Date());if(r.completed.includes(id))return;
+  const t=state.tasks.find(x=>x.id===id),rewardEligible=!!t?.builtin;
+  const beforeFish=dailyFishEarned(today);
+  const fishDelta=rewardEligible&&beforeFish<DAILY_FISH_CAP?1:0;
+  const pointsDelta=rewardEligible?2:0;
+  r.completed.push(id);
+  r.fishEarned=Math.min(DAILY_FISH_CAP,beforeFish+fishDelta);
+  state.points+=pointsDelta;state.fish+=fishDelta;
+  updatePetNeeds(nowMs(),false);
+  if(rewardEligible)state.pet.mood=clampPet(state.pet.mood+2);
+  state.pet.message=fishDelta?'收到一条小鱼干！你今天又前进了一点点。':'任务完成啦，奶糕看见你的努力了。';
+  logEconomy('task-complete',{taskId:id,date:today,deltaFish:fishDelta,deltaPoints:pointsDelta,rewardEligible});
+  save();pauseUntil=Date.now()+15000;
+  soundCheckin();
+  toast(rewardEligible?(fishDelta?'完成啦！+2分 · 🐟 +1':'完成啦！+2分 · 今日小鱼干已满6条'):'自定义任务已记录');
   const back=cur;
   if(meta[back])subject(back);else home();
 }
@@ -512,7 +562,7 @@ function subject(s){
           <button class="subject-min-hit" ${scheduled&&!ok?`data-subcheck="${t.id}"`:''} ${ok||!scheduled?'disabled':''} aria-label="${esc(t.name)}，${ok?'已完成':scheduled?'点击完成':'今天不安排'}">
             <span class="subject-min-icon-stack">
               <span class="subject-clean-task-icon" style="--subject-bg:${m[2]}">${t.icon}</span>
-              ${taskRewardIcons()}
+              ${taskRewardIcons(!!t.builtin)}
             </span>
             <span class="subject-min-copy">
               <b>${esc(t.name)}</b>
@@ -551,7 +601,7 @@ function taskModal(s,id){
     syncTodayPlan();save();closeModal();subject(s)
   }
 }
-function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼干商城</h1><p>学习赚小鱼干，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼干还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
+function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼干商城</h1><p>学习赚小鱼干，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>{const owned=i.type==='durable'&&(state.inventory[i.id]||0)>0;return `<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>${i.type==='durable'?'耐用品 · 买一次可重复使用':'消耗品 · 使用后会减少'}</p><button data-buy="${i.id}" ${owned?'disabled':''}>${owned?'✓ 已拥有':'🐟 '+i.cost+' · 兑换'}</button></div>`}).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(!i)return;if(i.type==='durable'&&(state.inventory[i.id]||0)>0)return toast('这个耐用品已经拥有');if(state.fish<i.cost)return toast('小鱼干还不够');state.fish-=i.cost;state.inventory[i.id]=i.type==='durable'?1:(state.inventory[i.id]||0)+1;logEconomy('shop-purchase',{itemId:i.id,itemName:i.name,deltaFish:-i.cost,deltaPoints:0,itemType:i.type});save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
   setPlaybackAudioSession();unlockAudio();
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
@@ -574,18 +624,20 @@ function startPetSession(){
   clearPetTimers();
   stopPetAudio();
   petBusy=false;
+  resetPetScene();
 }
 function stopPetSession(){
   petSession++;
   clearPetTimers();
   petBusy=false;
   stopPetAudio();
+  resetPetScene();
 }
 function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
   const a=$('#catAvatar'),m=$('#petMessage'),f=$('#petEffects'),p=$('#petProp');
   if(!a)return;
-  a.className='cat-avatar '+cls;
+  a.className='cat-avatar '+cls+' '+petVisualConditionClasses();
   if(m)m.textContent=text;if(f)f.innerHTML=fx;if(p)p.innerHTML=prop;
   state.pet.message=text;save();
 }
@@ -595,16 +647,62 @@ function finishPetAction(text){
     if($('#catAvatar')){setPetVisual('idle',text||state.pet.message);startPetIdle()}
   },1100)
 }
+function petVisualConditionClasses(){
+  const p=state.pet,cls=[];
+  if(p.health<45)cls.push('pet-sick');
+  if(p.hunger<28)cls.push('pet-hungry');
+  if(p.cleanliness<28)cls.push('pet-dirty');
+  return cls.join(' ');
+}
+function dayPart(){
+  const h=new Date().getHours();
+  if(h<6)return 'night';
+  if(h<11)return 'morning';
+  if(h<17)return 'day';
+  if(h<20)return 'evening';
+  return 'night';
+}
+function roomItemLayer(){
+  const has=id=>(state.inventory[id]||0)>0;
+  return `<div class="room-items">
+    ${has('toy-box')?'<button class="room-object room-box" data-room-item="toy-box" aria-label="纸箱">📦</button>':''}
+    ${has('toy-ball')?'<button class="room-object room-ball" data-room-item="toy-ball" aria-label="小球">●</button>':''}
+    ${has('toy-scratch')?'<button class="room-object room-scratch" data-room-item="toy-scratch" aria-label="猫抓板">▥</button>':''}
+    ${has('med-rest')?'<button class="room-object room-bed" data-room-item="med-rest" aria-label="休息垫">♡</button>':''}
+    ${has('care-brush')?'<button class="room-object room-brush" data-room-item="care-brush" aria-label="梳毛刷">✦</button>':''}
+  </div>`;
+}
+function idleOptionsForPet(){
+  const p=state.pet;
+  if(p.health<45)return [
+    ['idle-sick','奶糕今天没什么精神，安静地趴着休息。'],
+    ['idle-blink','奶糕慢慢眨眼，看起来想多睡一会儿。']
+  ];
+  if(p.hunger<28)return [
+    ['idle-hungry','奶糕走到饭碗旁边，回头望着你。'],
+    ['meowing','奶糕轻轻叫了一声，好像在提醒你开饭啦。'],
+    ['idle-look','奶糕一直盯着饭碗，又看看你。']
+  ];
+  if(p.cleanliness<28)return [
+    ['idle-groom','奶糕低头舔毛，又忍不住挠了挠身上。'],
+    ['idle-itch','奶糕抖了抖毛，感觉有点不舒服。']
+  ];
+  if(p.mood<45)return [
+    ['idle-look','奶糕安静坐着，好像在等你陪它玩。'],
+    ['idle-blink','奶糕慢慢眨眼，轻轻摆着尾巴。']
+  ];
+  return [
+    ['idle-look','奶糕看看窗外，又回头看向你。'],
+    ['idle-blink','奶糕慢慢眨了眨眼。'],
+    ['idle-stretch','奶糕前爪向前，伸了一个懒腰。'],
+    ['idle-groom','奶糕低头舔了舔前爪。']
+  ];
+}
 function startPetIdle(){
   if(cur!=='pet'||petBusy||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const schedule=()=>petDelay(()=>{
     if(petBusy||!$('#catAvatar'))return;
-    const idles=[
-      ['idle-look','奶糕看看窗外，又回头看向你。'],
-      ['idle-blink','奶糕慢慢眨了眨眼。'],
-      ['idle-stretch','奶糕前爪向前，伸了一个懒腰。'],
-      ['idle-groom','奶糕低头舔了舔前爪。']
-    ];
+    const idles=idleOptionsForPet();
     const x=idles[Math.floor(Math.random()*idles.length)];
     setPetVisual(x[0],x[1]);
     petDelay(()=>{if(!petBusy&&$('#catAvatar'))setPetVisual('idle','奶糕安静地待在小屋里。')},1100);
@@ -626,34 +724,44 @@ function renderPet(){
   ];
   page.innerHTML=`<div class="page-panel pet-page">
     <div class="section-hero">
-      <div><h1>🐾 奶糕的小屋</h1><p>完成任务获得小鱼干，换用品后可以和奶糕真实感互动。</p></div>
+      <div><h1>奶糕的小屋 ♡</h1><p>学习、陪伴和照顾会让奶糕每天都有不同反应。</p></div>
       <div class="pet-top-badges"><b>🐟 ${state.fish}</b><b class="pet-health-badge ${petStatusClass(state.pet.health)}">${state.pet.health<45?'🤒 需要护理':'❤️ '+state.pet.health+'%'}</b></div>
     </div>
     <div class="pet-large">
-      <div class="pet-stage" id="petStage">
-        <div class="pet-room-bg"><span class="window">☁️</span><span class="plant">🪴</span><span class="bed">🧺</span></div>
-        <div class="pet-message" id="petMessage">${esc(state.pet.message)}</div>
+      <div class="pet-stage pet-room-v2 ${dayPart()}" id="petStage">
+        <div class="pet-room-bg-v2">
+          <div class="room-wall"></div>
+          <div class="room-window"><div class="room-sky"><i class="sky-cloud one"></i><i class="sky-cloud two"></i></div><div class="window-cross"></div></div>
+          <div class="room-shelf"><span>📚</span><span>🌷</span><span>⭐</span></div>
+          <div class="room-floor"></div>
+          <div class="room-rug"></div>
+          <div class="room-bowl">♡</div>
+          <div class="room-plant">🌿</div>
+          ${roomItemLayer()}
+        </div>
+        <div class="pet-message pet-message-v2" id="petMessage"><span>奶糕说</span>${esc(state.pet.message)}</div>
         <div class="pet-condition-layer">
           ${state.pet.hunger<35?'<span class="pet-condition hungry">🍽️</span>':''}
           ${state.pet.cleanliness<35?'<span class="pet-condition dirty">✦</span>':''}
           ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
         </div>
         <div class="pet-effect-layer" id="petEffects"></div>
-        <div class="cat-avatar idle ${state.pet.health<45?'pet-sick':''}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
+        <div class="pet-scene-overlay" id="petSceneOverlay"></div>
+        <div class="cat-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
         <div class="pet-prop" id="petProp"></div>
       </div>
       <div class="card pet-control-card">
         <h3>和奶糕互动</h3>
         <div class="pet-quick-actions">${quick.map(x=>`<button class="pet-quick" data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}</div>
         <div class="pet-vitals">
-          <div class="pet-vital"><div><span>🍽️ 饱腹</span><b>${state.pet.hunger}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.hunger)}"><i style="width:${state.pet.hunger}%"></i></div></div>
-          <div class="pet-vital"><div><span>🫧 清洁</span><b>${state.pet.cleanliness}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.cleanliness)}"><i style="width:${state.pet.cleanliness}%"></i></div></div>
-          <div class="pet-vital"><div><span>❤️ 健康</span><b>${state.pet.health}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${state.pet.health}%"></i></div></div>
-          <div class="pet-vital"><div><span>😊 心情</span><b>${state.pet.mood}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${state.pet.mood}%"></i></div></div>
+          <div class="pet-vital"><div><span>🍽️ 饱腹</span><b>${petDisplay(state.pet.hunger)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.hunger)}"><i style="width:${petDisplay(state.pet.hunger)}%"></i></div></div>
+          <div class="pet-vital"><div><span>🫧 清洁</span><b>${petDisplay(state.pet.cleanliness)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.cleanliness)}"><i style="width:${petDisplay(state.pet.cleanliness)}%"></i></div></div>
+          <div class="pet-vital"><div><span>❤️ 健康</span><b>${petDisplay(state.pet.health)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${petDisplay(state.pet.health)}%"></i></div></div>
+          <div class="pet-vital"><div><span>😊 心情</span><b>${petDisplay(state.pet.mood)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${petDisplay(state.pet.mood)}%"></i></div></div>
         </div>
         <div class="sound-tip">🔊 摸摸：真实猫叫 → 呼噜；“叫一声”会直接播放真实猫叫</div>
         <h3>我的宠物用品</h3>
-        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
+        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
         <div class="audio-credit">猫叫：Dan Crosby / Wikimedia Commons（CC BY-SA 3.0） · 呼噜：Mysid / Public Domain</div>
       </div>
     </div>
@@ -662,6 +770,7 @@ function renderPet(){
   const pending=sessionStorage.getItem('miaomiao-pet-action');sessionStorage.removeItem('miaomiao-pet-action');
   page.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>petAction(b.dataset.act));
   page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
+  page.querySelectorAll('[data-room-item]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.roomItem));
   if(pending)petDelay(()=>petAction(pending),120);else startPetIdle();
 }
 function petAction(action){
@@ -690,37 +799,147 @@ function petNeed(name){
   updatePetNeeds();state.pet.message='还缺'+name+'，去商城准备一下吧～';save();setPlaybackAudioSession();catMeow();toast('需要先兑换'+name);
   const m=$('#petMessage');if(m)m.textContent=state.pet.message;
 }
+function setPetScene(scene='',phase=''){
+  const stage=$('#petStage');
+  if(!stage)return;
+  [...stage.classList].filter(x=>x.startsWith('scene-')||x.startsWith('phase-')).forEach(x=>stage.classList.remove(x));
+  if(scene)stage.classList.add('scene-'+scene);
+  if(phase)stage.classList.add('phase-'+phase);
+}
+function setSceneOverlay(html=''){
+  const o=$('#petSceneOverlay');if(o)o.innerHTML=html;
+}
+function resetPetScene(){
+  setPetScene();setSceneOverlay('');
+}
+function commitPetItemUse(i,r){
+  if(i.type==='consumable'){
+    state.inventory[i.id]=Math.max(0,(Number(state.inventory[i.id])||0)-1);
+    if(state.inventory[i.id]===0)delete state.inventory[i.id];
+  }
+  logEconomy('pet-item-use',{itemId:i.id,itemName:i.name,deltaFish:0,deltaPoints:0,itemType:i.type});
+  renderPetInventoryOnly();
+  save();
+}
+function finishSceneWithEffect(i,r,end,cls='happy',keepProp=''){
+  applyPetEffect(r.effect||{mood:r.mood||3});
+  setPetVisual(cls,end,'',keepProp);
+  toast(i.name+' 已使用');
+  petDelay(()=>{resetPetScene();finishPetAction(end)},900);
+}
+function runFeedingScene(i,r){
+  setPetScene('feed','approach');
+  setSceneOverlay('<div class="scene-bowl"><span class="scene-food food-1"></span><span class="scene-food food-2"></span><span class="scene-food food-3"></span><span class="scene-food food-4"></span><b>♡</b></div>');
+  setPetVisual('feed-approach',r.notice,'',r.prop);
+  soundRustle();
+  petDelay(()=>{
+    setPetScene('feed','sniff');
+    setPetVisual('feed-sniff','奶糕走到饭碗前，先认真闻了闻。','<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',r.prop);
+  },650);
+  petDelay(()=>{
+    setPetScene('feed','eat');
+    setPetVisual(r.cls,r.text,r.fx,r.prop);
+    playPetSound(r.sound);
+  },1250);
+  petDelay(()=>{
+    setPetScene('feed','lick');
+    setPetVisual('feed-lick','奶糕吃得差不多了，抬头舔了舔嘴巴。','<span class="lick-mark">〰</span>',r.prop);
+  },3000);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'奶糕吃饱啦，满足地眯起眼睛看着你。');
+  },3900);
+}
+function runBathScene(i,r){
+  setPetScene('bath','notice');
+  setSceneOverlay('<div class="scene-tub"><span class="tub-rim"></span><span class="water-line"></span></div><div class="scene-shower">⌇⌇⌇</div>');
+  setPetVisual('bath-notice','听见水声，奶糕耳朵动了一下，往后退了半步。','','<span class="prop-shower">🚿</span>');
+  soundSplash();
+  petDelay(()=>{
+    setPetScene('bath','wash');
+    setPetVisual('care-bath','温水慢慢打湿毛毛，泡泡一点点把脏东西洗掉。','<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>','<span class="prop-shower">🚿</span>');
+  },850);
+  petDelay(()=>{
+    setPetScene('bath','rinse');
+    setPetVisual('bath-rinse','冲洗干净后，奶糕眯着眼睛等你帮它擦干。','<span class="bubble bubble-2">○</span>','');
+  },2800);
+  petDelay(()=>{
+    setPetScene('bath','shake');
+    setPetVisual('bath-shake','奶糕突然用力甩了甩毛，水珠飞得到处都是！','<span class="splash-drop d1">•</span><span class="splash-drop d2">•</span><span class="splash-drop d3">•</span>','');
+    playPetSound('splash');
+  },3650);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'洗香香完成！奶糕的毛又蓬松又干净。');
+  },4650);
+}
+function runBrushScene(i,r){
+  setPetScene('brush','start');
+  setSceneOverlay('<div class="scene-brush-track"><span class="scene-brush-tool">🪮</span></div>');
+  setPetVisual('attention','梳子靠近，奶糕先回头闻了闻。','','');
+  petDelay(()=>{
+    setPetScene('brush','stroke');
+    setPetVisual('care-brush','从头到背轻轻梳下去，奶糕舒服得眯起眼睛。','<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>','');
+    playPetSound('brush');catPurr();
+  },700);
+  petDelay(()=>{
+    setPetScene('brush','lean');
+    setPetVisual('purring','奶糕主动把背拱起来，像是在说“这里也要梳～”。','<span class="heart pet-heart-1">♥</span>','');
+  },2300);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'梳完毛啦，奶糕贴过来蹭了蹭你的手。');
+  },3400);
+}
+function runBoxScene(i,r){
+  setPetScene('box','approach');
+  setSceneOverlay('<div class="scene-cardboard"><span class="box-ear left"></span><span class="box-ear right"></span><b>奶糕的小纸箱 ♡</b></div>');
+  setPetVisual('box-approach','奶糕发现纸箱，围着它走了一圈。','','');
+  soundRustle();
+  petDelay(()=>{
+    setPetScene('box','jump');
+    setPetVisual('box-jump','奶糕突然轻轻一跳，前爪搭在纸箱边上。','','');
+  },800);
+  petDelay(()=>{
+    setPetScene('box','hide');
+    setPetVisual('play-box','嗖的一下钻进纸箱，只露出两只眼睛偷偷看你。','<span class="peek-mark">…</span>','');
+    playPetSound('rustle');
+  },1550);
+  petDelay(()=>{
+    setPetScene('box','peek');
+    setPetVisual('box-peek','奶糕从纸箱里探出脑袋：被你发现啦！','<span class="heart pet-heart-1">♥</span>','');
+  },3200);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'奶糕决定先把这个纸箱当成今天的秘密基地。');
+  },4200);
+}
+function runPetItemScene(i,r){
+  if(i.action==='feed')return runFeedingScene(i,r);
+  if(i.id==='care-bath')return runBathScene(i,r);
+  if(i.id==='care-brush')return runBrushScene(i,r);
+  if(i.id==='toy-box')return runBoxScene(i,r);
+  setPetVisual('attention',r.notice,'',r.prop);
+  soundRustle();
+  petDelay(()=>{
+    setPetVisual(r.cls,r.text,r.fx,r.prop);
+    playPetSound(r.sound);
+    petDelay(()=>{
+      let end='奶糕用完'+i.name+'，舒服地坐了下来。';
+      if(i.action==='play')end='奶糕玩累了一点，趴下来休息。';
+      if(i.id==='med-rest')end='奶糕已经睡着了，呼吸慢慢变得平稳。';
+      finishSceneWithEffect(i,r,end,i.id==='med-rest'?'sleeping':'happy',i.id==='med-rest'?r.prop:'');
+    },1900);
+  },550);
+}
 function usePetItem(id){
   if(cur!=='pet'||petBusy)return;
   const i=shop.find(x=>x.id===id),r=petReactions[id];
   if(!i||!state.inventory[i.id]||!r)return;
   petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
-
-  state.inventory[i.id]=Math.max(0,(Number(state.inventory[i.id])||0)-1);
-  if(state.inventory[i.id]===0)delete state.inventory[i.id];
-  applyPetEffect(r.effect||{mood:r.mood||3});
-
-  setPetVisual('attention',r.notice,'',r.prop);
-  soundRustle();renderPetInventoryOnly();
-
-  petDelay(()=>{
-    setPetVisual(r.cls,r.text,r.fx,r.prop);
-    playPetSound(r.sound);toast(i.name+' 已使用');
-    petDelay(()=>{
-      let end='奶糕用完'+i.name+'，舒服地坐了下来。';
-      if(i.action==='feed')end='奶糕吃完后舔舔嘴巴，满足地坐在旁边。';
-      if(i.action==='play')end='奶糕玩累了一点，趴下来休息。';
-      if(id==='care-bath')end='奶糕甩了甩毛，终于洗干净啦。';
-      if(id==='med-rest')end='奶糕已经睡着了，呼吸慢慢变得平稳。';
-      setPetVisual(id==='med-rest'?'sleeping':'happy',end,'',id==='med-rest'?r.prop:'');
-      finishPetAction(end);
-    },1900);
-  },550);
+  commitPetItemUse(i,r);
+  runPetItemScene(i,r);
 }
 function renderPetInventoryOnly(){
   const box=document.querySelector('.pet-inventory');if(!box)return;
   const own=shop.filter(i=>(state.inventory[i.id]||0)>0);
-  box.innerHTML=own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">用品已经用完，去商城补充吧。</div>';
+  box.innerHTML=own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">用品已经用完，去商城补充吧。</div>';
   box.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
 }
 function renderRewards(){
@@ -749,7 +968,7 @@ function renderRewards(){
   page.querySelectorAll('[data-red]').forEach(b=>b.onclick=()=>{
     const r=all.find(x=>x.id===b.dataset.red);
     if(!r||state.points<r.points)return;
-    state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});save();toast('已兑换：'+r.title);renderRewards()
+    state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});logEconomy('reward-redeem',{rewardId:r.id,title:r.title,deltaFish:0,deltaPoints:-r.points});save();toast('已兑换：'+r.title);renderRewards()
   })
 }
 function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成全部任务</p><button class="secondary-btn" id="recover">数据恢复</button><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#recover').onclick=()=>openRecovery();$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
@@ -757,9 +976,9 @@ $('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files
 function openRecovery(){
   const b=availableBackups();
   modal(`<h2>数据恢复</h2>
-    <p style="font-size:12px;color:#777">系统会保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
+    <p style="font-size:12px;color:#777">系统会在这台设备保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
     <div style="font-size:11px;line-height:1.5;background:#fff7ea;border:1px solid #f0dfbd;border-radius:10px;padding:7px 9px;margin:7px 0">
-      已确认并保护：9月18日 6/6、至少24积分、至少🐟17，以及猫条×1、纸箱×1、梳毛刷×1。恢复更早的备份时，这些已确认历史记录会自动补回。
+      v4 起不再自动写入任何历史打卡、库存或欢迎小鱼干；恢复内容以所选备份本身为准。建议定期导出 JSON 作为设备外备份。
     </div>
     <div class="recovery-list">${b.length?b.map((x,i)=>{
       const s=backupSummary(x.state),label=x.key.startsWith(BACKUP_DAILY_PREFIX)?x.key.slice(BACKUP_DAILY_PREFIX.length):(x.key===BACKUP_LATEST?'最近备份':'上一个备份');
@@ -804,8 +1023,17 @@ document.addEventListener('visibilitychange',()=>{
     else if(cur==='home')home();
   }
 });
-renderNav();home();
-if(inventoryRestoreApplied)setTimeout(()=>toast('已恢复宠物用品：猫条×1 · 纸箱×1 · 梳毛刷×1'),500);else if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
+function startVitalsHeartbeat(){
+  if(vitalsTimer)clearInterval(vitalsTimer);
+  vitalsTimer=setInterval(()=>{
+    if(document.hidden)return;
+    updatePetNeeds();
+    if(cur==='home')home();
+    else if(cur==='pet'&&!petBusy)renderPet();
+  },60000);
+}
+renderNav();home();startVitalsHeartbeat();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
