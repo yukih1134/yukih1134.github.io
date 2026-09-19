@@ -1,5 +1,12 @@
 (()=>{'use strict';
-const K='miaomiao-study-desk-v2',$=s=>document.querySelector(s),nav=$('#nav'),page=$('#page');
+const PREVIEW=!!window.MIAOMIAO_PREVIEW_MODE;
+const PROD_K='miaomiao-study-desk-v2';
+const K=PREVIEW?'miaomiao-study-desk-v3-preview':PROD_K,$=s=>document.querySelector(s),nav=$('#nav'),page=$('#page');
+if(PREVIEW){
+  try{
+    if(!localStorage.getItem(K)&&localStorage.getItem(PROD_K))localStorage.setItem(K,localStorage.getItem(PROD_K));
+  }catch(e){}
+}
 const navs=[['home','首页','⌂'],['chinese','语文','书'],['math','数学','123'],['english','英语','Aa'],['sport','运动','动'],['shop','商城','店'],['pet','宠物','猫'],['rewards','奖励','☆'],['calendar','日历','日']];
 const meta={chinese:['语文','📖','#f6e4e8'],math:['数学','123','#eaf2fb'],english:['英语','ABC','#f9efde'],sport:['运动','🪢','#e7f4ea']};
 const wd=['日','一','二','三','四','五','六'];
@@ -39,12 +46,13 @@ const petReactions={
 'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5,effect:{health:20,mood:5,hunger:-1}}
 };
 const nowMs=()=>Date.now();
-const BACKUP_LATEST='miaomiao-backup-latest-v1';
-const BACKUP_PREV='miaomiao-backup-prev-v1';
-const BACKUP_DAILY_PREFIX='miaomiao-backup-day-';
-const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
-const EVIDENCE_RESTORE_KEY='miaomiao-evidence-restore-2026-09-18-v1';
-const INVENTORY_RESTORE_KEY='miaomiao-inventory-restore-2026-09-18-v1';
+const STORAGE_NS=PREVIEW?'miaomiao-v3-preview-':'miaomiao-';
+const BACKUP_LATEST=STORAGE_NS+'backup-latest-v1';
+const BACKUP_PREV=STORAGE_NS+'backup-prev-v1';
+const BACKUP_DAILY_PREFIX=STORAGE_NS+'backup-day-';
+const STARTER_FISH_KEY=STORAGE_NS+'starter-fish-v1';
+const EVIDENCE_RESTORE_KEY=STORAGE_NS+'evidence-restore-2026-09-18-v1';
+const INVENTORY_RESTORE_KEY=STORAGE_NS+'inventory-restore-2026-09-18-v1';
 const DATA_SCHEMA=4;
 const DAILY_FISH_CAP=6;
 const PET_OFFLINE_CAP_HOURS=12;
@@ -1291,7 +1299,7 @@ function startVitalsHeartbeat(){
 }
 primeCatMedia();renderNav();home();startVitalsHeartbeat();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
-if(!window.MIAOMIAO_PREVIEW_MODE&&'serviceWorker'in navigator)addEventListener('load',async()=>{
+if(!PREVIEW&&'serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
     reg.update().catch(()=>{});
