@@ -208,6 +208,25 @@ function applyEvidenceRestore(){
   }catch(e){return false}
 }
 applyEvidenceRestore();
+
+const INVENTORY_RESTORE_KEY='miaomiao-inventory-restore-2026-09-18-v1';
+let inventoryRestoreApplied=false;
+function applyInventoryRestore(){
+  try{
+    if(localStorage.getItem(INVENTORY_RESTORE_KEY)==='1')return false;
+    state.inventory=state.inventory||{};
+    state.inventory['food-treat']=Math.max(Number(state.inventory['food-treat'])||0,1);
+    state.inventory['toy-box']=Math.max(Number(state.inventory['toy-box'])||0,1);
+    state.inventory['care-brush']=Math.max(Number(state.inventory['care-brush'])||0,1);
+    state.pet=state.pet||petDefaults();
+    state.pet.message='已恢复昨天购买的猫条、纸箱和梳毛刷。';
+    save();
+    localStorage.setItem(INVENTORY_RESTORE_KEY,'1');
+    inventoryRestoreApplied=true;
+    return true;
+  }catch(e){return false}
+}
+applyInventoryRestore();
 if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
   state.fish=(Number(state.fish)||0)+6;
   state.pet.message='奶糕送来6条欢迎小鱼干，今天也一起加油吧！';
@@ -736,7 +755,7 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 renderNav();home();
-if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
+if(inventoryRestoreApplied)setTimeout(()=>toast('已恢复宠物用品：猫条×1 · 纸箱×1 · 梳毛刷×1'),500);else if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
