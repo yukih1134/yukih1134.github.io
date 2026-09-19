@@ -784,29 +784,32 @@ function setPetZone(zone='center',walking=false){
   a.dataset.zone=zone;
   a.classList.toggle('v3-walking',!!walking);
 }
-function preferredPetZone(){
+function chooseAutonomousBehavior(){
   const p=state.pet,h=new Date().getHours(),has=id=>(state.inventory[id]||0)>0;
-  if(p.health<45)return has('med-rest')?'bed':'center';
-  if(p.hunger<35)return 'bowl';
-  if(h>=21||h<7)return has('med-rest')?'bed':'center';
-  if(has('toy-box')&&Math.random()<.28)return 'box';
-  if(Math.random()<.34)return 'window';
-  return 'center';
+  if(p.health<45)return {type:'rest',zone:has('med-rest')?'bed':'center',state:'sick',message:'奶糕今天有点不舒服，想安静休息一会儿。'};
+  if(p.hunger<35)return {type:'hungry',zone:'bowl',state:'curious',message:'奶糕肚子饿了，主动走到饭碗旁边等你。'};
+  if(p.cleanliness<35)return {type:'groom',zone:'center',state:'brush',message:'奶糕觉得毛有点乱，低头认真舔了舔自己的毛。'};
+  if(h>=21||h<7)return {type:'sleep',zone:has('med-rest')?'bed':'center',state:'sleep',message:'时间不早啦，奶糕慢慢蜷起来准备睡觉。'};
+  if(has('toy-ball')&&Math.random()<.25)return {type:'ball',zone:'center',state:'walk',message:'奶糕发现小球，轻轻拍了一下又追了过去。'};
+  if(has('toy-box')&&Math.random()<.20)return {type:'box',zone:'box',state:'box',message:'奶糕自己钻进纸箱，把这里当成秘密基地。'};
+  if(Math.random()<.42)return {type:'window',zone:'window',state:'curious',message:'奶糕走到窗边，安静地看看外面的天空。'};
+  return {type:'wander',zone:'center',state:'idle',message:'奶糕在房间里慢慢走了一圈，又回到你身边。'};
 }
+function preferredPetZone(){return chooseAutonomousBehavior().zone}
 function autonomousPetStep(){
-  if(cur!=='pet'||petBusy||!$('#catAvatar'))return;
-  const target=preferredPetZone(),current=$('#catAvatar').dataset.zone||'center';
-  if(target===current)return;
-  setV3SpriteState('walk');setPetZone(target,true);
-  const msg=target==='bowl'?'奶糕慢慢走到饭碗旁边。':target==='window'?'奶糕走到窗边，好奇地看看外面。':target==='box'?'奶糕朝纸箱走过去，想看看里面。':target==='bed'?'奶糕有点困了，走向自己的小窝。':'奶糕在房间里慢慢走了一圈。';
-  const m=$('#petMessage');if(m)m.innerHTML='<span>奶糕说</span>'+esc(msg);
-  petDelay(()=>{
-    if(!$('#catAvatar'))return;
-    $('#catAvatar').classList.remove('v3-walking');
-    const endState=target==='bed'?'sleep':target==='box'?'curious':state.pet.health<45?'sick':'idle';
-    const pos=V3_META.states?.[endState]||V3_META.states?.idle||[0,0],el=$('#petV3Sprite');
-    if(el){el.dataset.v3State=endState;el.style.setProperty('--sx',pos[0]);el.style.setProperty('--sy',pos[1])}
-  },850);
+  if(cur!=='pet'||petBusy||petInteractive||!$('#catAvatar'))return;
+  const behavior=chooseAutonomousBehavior(),target=behavior.zone,current=$('#catAvatar').dataset.zone||'center';
+  const needsWalk=target!==current;
+  if(needsWalk){setV3State('walk');setPetZone(target,true)}
+  const m=$('#petMessage');if(m)m.innerHTML='<span>奶糕说</span>'+esc(behavior.message);
+  const settle=()=>{
+    const a=$('#catAvatar');if(!a)return;
+    a.classList.remove('v3-walking');setV3State(behavior.state);
+    if(behavior.type==='groom'){soundLick();petDelay(()=>{if(!petBusy&&$('#catAvatar'))setV3State('idle')},1200)}
+    else if(behavior.type==='ball'){soundBall();petDelay(()=>{if(!petBusy&&$('#catAvatar'))setV3State('happy')},850)}
+    else if(behavior.type==='sleep')petDelay(()=>{if(!petBusy&&$('#catAvatar'))setV3State('sleep')},700);
+  };
+  if(needsWalk)petDelay(settle,850);else settle();
 }
 function idleOptionsForPet(){
   const p=state.pet;
