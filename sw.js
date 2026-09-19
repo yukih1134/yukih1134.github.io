@@ -1,5 +1,5 @@
-const CACHE='miaomiao-desk-v14';
-const CORE=['./','./index.html','./styles.css?v=20260919-14','./app.js?v=20260919-14','./manifest.json','./icon.svg'];
+const CACHE='miaomiao-desk-v15';
+const CORE=['./','./index.html','./styles.css?v=20260919-15','./app.js?v=20260919-15','./manifest.json','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
