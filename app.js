@@ -181,6 +181,33 @@ function petStatusClass(v){return v<25?'critical':v<50?'low':v<75?'mid':'good'}
 ensurePetVitals();
 updatePetNeeds(nowMs(),false);
 snapshotCurrentRaw();
+
+const EVIDENCE_RESTORE_KEY='miaomiao-evidence-restore-2026-09-18-v1';
+let evidenceRestoreApplied=false;
+function applyEvidenceRestore(){
+  try{
+    if(localStorage.getItem(EVIDENCE_RESTORE_KEY)==='1')return false;
+    const d='2026-09-18';
+    const ids=['cn-write','cn-read','math-homework','en-listen','en-raz','sp-badminton'];
+    const existing=state.records&&state.records[d]&&Array.isArray(state.records[d].completed)?state.records[d].completed:[];
+    const planned=state.records&&state.records[d]&&Array.isArray(state.records[d].planned)?state.records[d].planned:ids;
+    state.records=state.records||{};
+    state.records[d]={
+      ...(state.records[d]||{}),
+      planned:Array.from(new Set([...planned,...ids])),
+      completed:Array.from(new Set([...existing,...ids]))
+    };
+    state.points=Math.max(Number(state.points)||0,24);
+    state.fish=Math.max(Number(state.fish)||0,17);
+    state.pet=state.pet||petDefaults();
+    state.pet.message='已恢复9月18日打卡记录、积分和小鱼干。';
+    save();
+    localStorage.setItem(EVIDENCE_RESTORE_KEY,'1');
+    evidenceRestoreApplied=true;
+    return true;
+  }catch(e){return false}
+}
+applyEvidenceRestore();
 if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
   state.fish=(Number(state.fish)||0)+6;
   state.pet.message='奶糕送来6条欢迎小鱼干，今天也一起加油吧！';
@@ -662,6 +689,9 @@ function openRecovery(){
   const b=availableBackups();
   modal(`<h2>数据恢复</h2>
     <p style="font-size:12px;color:#777">系统会保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
+    <div style="font-size:11px;line-height:1.5;background:#fff7ea;border:1px solid #f0dfbd;border-radius:10px;padding:7px 9px;margin:7px 0">
+      已按历史截图恢复 9月18日 6/6、24积分、🐟17。昨天购买的宠物用品具体种类无法从截图确认，所以没有擅自添加错误物品。
+    </div>
     <div class="recovery-list">${b.length?b.map((x,i)=>{
       const s=backupSummary(x.state),label=x.key.startsWith(BACKUP_DAILY_PREFIX)?x.key.slice(BACKUP_DAILY_PREFIX.length):(x.key===BACKUP_LATEST?'最近备份':'上一个备份');
       return `<div class="recovery-item"><div><b>${label}</b><small>积分 ${s.points} · 🐟 ${s.fish} · 打卡日期 ${s.dates.length}天 · 宠物用品 ${s.inventory}件</small></div><button class="primary-btn" data-restore="${i}">恢复</button></div>`
@@ -706,7 +736,7 @@ document.addEventListener('visibilitychange',()=>{
   }
 });
 renderNav();home();
-if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
+if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
