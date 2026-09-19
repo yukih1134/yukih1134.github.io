@@ -302,6 +302,25 @@ const weekStart=(d=new Date())=>{let x=new Date(d),n=(x.getDay()+6)%7;x.setDate(
 const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{let d=new Date(s);d.setDate(s.getDate()+i);return d})};
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const PET_ART=window.MIAOMIAO_PET_ART||{};
+function petArtImg(name='idle',extra=''){
+  const src=PET_ART[name]||PET_ART.idle||'';
+  return src?`<img class="naigao-art ${extra}" data-pet-art="${name}" src="${src}" alt="" draggable="false">`:'';
+}
+function petArtForVisual(cls=''){
+  if(/eating-|feed-lick/.test(cls))return 'feed';
+  if(/play-box|box-peek/.test(cls))return 'box';
+  if(/care-brush|purring-brush/.test(cls))return 'brush';
+  return 'idle';
+}
+function updatePetArt(cls='idle'){
+  const img=$('#petArt');if(!img)return;
+  const name=petArtForVisual(cls),src=PET_ART[name]||PET_ART.idle;
+  if(src&&img.dataset.petArt!==name){img.src=src;img.dataset.petArt=name}
+}
+function sceneArt(name,label=''){
+  return `<div class="pet-story-scene">${petArtImg(name,'pet-story-art')}<div class="pet-story-label">${esc(label)}</div></div>`;
+}
 function taskRewardIcons(rewardEligible=true){
   if(!rewardEligible)return '<span class="task-reward-icons"><span class="task-reward-chip" title="自定义任务仅记录完成">记录</span></span>';
   return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加1">
@@ -397,7 +416,18 @@ function tone(freq=440,dur=.12,type='sine',gain=.035,delay=0){
   o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.03);
 }
 function soundCheckin(){tone(660,.1,'sine',.03);tone(880,.12,'sine',.028,.08)}
-function soundMeow(){unlockAudio();sweep(720,410,.26,.032);sweep(520,300,.22,.018,.08)}
+function soundMeow(){
+  const c=ctx();if(!c)return;
+  try{
+    if(c.state==='suspended')c.resume().catch(()=>{});
+    const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter(),lfo=c.createOscillator(),lg=c.createGain(),t=c.currentTime;
+    o.type='sawtooth';o.frequency.setValueAtTime(560,t);o.frequency.exponentialRampToValueAtTime(910,t+.16);o.frequency.exponentialRampToValueAtTime(390,t+.52);
+    f.type='bandpass';f.frequency.value=950;f.Q.value=2.1;
+    lfo.frequency.value=18;lg.gain.value=20;lfo.connect(lg);lg.connect(o.frequency);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.095,t+.035);g.gain.setValueAtTime(.07,t+.22);g.gain.exponentialRampToValueAtTime(.0001,t+.56);
+    o.connect(f);f.connect(g);g.connect(c.destination);o.start(t);lfo.start(t);o.stop(t+.58);lfo.stop(t+.58);
+  }catch(e){sweep(720,410,.3,.075)}
+}
 function soundPurr(){unlockAudio();for(let i=0;i<8;i++)tone(92+(i%2)*7,.1,'sawtooth',.009,i*.065)}
 function soundSplash(){tone(520,.06,'sine',.02);tone(390,.08,'sine',.02,.07);tone(620,.06,'sine',.018,.14)}
 function soundToy(){tone(780,.07,'square',.018);tone(920,.07,'square',.018,.09)}
@@ -420,7 +450,22 @@ const catMedia={};
 function mediaFor(name){
   if(catMedia[name])return catMedia[name];
   const a=new Audio(catMediaSources[name]);a.preload='auto';a.playsInline=true;a.setAttribute('playsinline','');
-  a.volume=name==='purr'?.32:.72;catMedia[name]=a;return a;
+  a.volume=name==='purr'?.34:.8;catMedia[name]=a;return a;
+}
+function primeCatMedia(){
+  ['meow','purr'].forEach(name=>{try{const a=mediaFor(name);a.load()}catch(e){}});
+}
+function playCatNow(name,maxMs,fallback){
+  setPlaybackAudioSession();unlockAudio();
+  try{
+    const a=mediaFor(name);
+    if(a.readyState<2){fallback();a.load();return false}
+    a.pause();a.currentTime=0;
+    const p=a.play();
+    if(p&&typeof p.catch==='function')p.catch(()=>fallback());
+    if(maxMs)petDelay(()=>{try{a.pause();a.currentTime=0}catch(e){}},maxMs);
+    return true;
+  }catch(e){fallback();return false}
 }
 function stopCatMedia(){
   Object.values(catMedia).forEach(a=>{try{a.pause();a.currentTime=0}catch(e){}});
@@ -430,17 +475,8 @@ function stopPetAudio(){
   stopSynthAudio();
   setDefaultAudioSession();
 }
-async function playRealCat(name,maxMs){
-  try{
-    setPlaybackAudioSession();await unlockAudio();
-    const a=mediaFor(name);a.pause();a.currentTime=0;
-    await a.play();
-    if(maxMs)petDelay(()=>{try{a.pause();a.currentTime=0}catch(e){}},maxMs);
-    return true;
-  }catch(e){return false}
-}
-async function catMeow(){setPlaybackAudioSession();if(!(await playRealCat('meow',1300)))soundMeow()}
-async function catPurr(){setPlaybackAudioSession();if(!(await playRealCat('purr',2300)))soundPurr()}
+function catMeow(){playCatNow('meow',1300,soundMeow)}
+function catPurr(){playCatNow('purr',2300,soundPurr)}
 
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
@@ -478,7 +514,7 @@ function home(){
       <div class="home-pet-visual home-pet-scene ${dayPart()}">
         <div class="home-scene-window"><i></i></div>
         <div class="home-scene-rug"></div>
-        <div class="home-cat-wrap">${catSvg('mini')}</div>
+        <div class="home-cat-wrap">${petArtImg('idle','home-naigao-art')}</div>
         <span class="home-heart">♥</span>
       </div>
       <div class="home-pet-info">
@@ -637,8 +673,9 @@ function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
   const a=$('#catAvatar'),m=$('#petMessage'),f=$('#petEffects'),p=$('#petProp');
   if(!a)return;
-  a.className='cat-avatar '+cls+' '+petVisualConditionClasses();
-  if(m)m.textContent=text;if(f)f.innerHTML=fx;if(p)p.innerHTML=prop;
+  a.className='cat-avatar pet-art-avatar '+cls+' '+petVisualConditionClasses();
+  updatePetArt(cls);
+  if(m)m.innerHTML='<span>奶糕说</span>'+esc(text);if(f)f.innerHTML=fx;if(p)p.innerHTML=prop;
   state.pet.message=text;save();
 }
 function finishPetAction(text){
@@ -720,7 +757,7 @@ function renderPet(){
     ['play','🪶','玩耍'],
     ['bath','🫧',state.pet.cleanliness<45?'洗澡':'洗澡'],
     ['treat','🩺',state.pet.health<70?'护理':'护理'],
-    ['pet','🤚','摸摸'],['meow','🔊','叫一声']
+    ['pet','🤚','摸摸'],['meow','🔊','听猫叫']
   ];
   page.innerHTML=`<div class="page-panel pet-page">
     <div class="section-hero">
@@ -747,7 +784,7 @@ function renderPet(){
         </div>
         <div class="pet-effect-layer" id="petEffects"></div>
         <div class="pet-scene-overlay" id="petSceneOverlay"></div>
-        <div class="cat-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
+        <div class="cat-avatar pet-art-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕"><img id="petArt" class="naigao-art pet-naigao-art" data-pet-art="idle" src="${PET_ART.idle||''}" alt="" draggable="false"></div>
         <div class="pet-prop" id="petProp"></div>
       </div>
       <div class="card pet-control-card">
@@ -759,7 +796,7 @@ function renderPet(){
           <div class="pet-vital"><div><span>❤️ 健康</span><b>${petDisplay(state.pet.health)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${petDisplay(state.pet.health)}%"></i></div></div>
           <div class="pet-vital"><div><span>😊 心情</span><b>${petDisplay(state.pet.mood)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${petDisplay(state.pet.mood)}%"></i></div></div>
         </div>
-        <div class="sound-tip">🔊 摸摸：真实猫叫 → 呼噜；“叫一声”会直接播放真实猫叫</div>
+        <div class="sound-tip">🔊 点「听猫叫」可立即测试声音。若 iPhone 处于系统静音，请关闭静音并调高媒体音量。</div>
         <h3>我的宠物用品</h3>
         <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
         <div class="audio-credit">猫叫：Dan Crosby / Wikimedia Commons（CC BY-SA 3.0） · 呼噜：Mysid / Public Domain</div>
@@ -768,7 +805,10 @@ function renderPet(){
   </div>`;
 
   const pending=sessionStorage.getItem('miaomiao-pet-action');sessionStorage.removeItem('miaomiao-pet-action');
-  page.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>petAction(b.dataset.act));
+  page.querySelectorAll('[data-act]').forEach(b=>{
+    if(b.dataset.act==='meow')b.onpointerdown=e=>{e.preventDefault();petAction('meow')};
+    else b.onclick=()=>petAction(b.dataset.act);
+  });
   page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
   page.querySelectorAll('[data-room-item]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.roomItem));
   if(pending)petDelay(()=>petAction(pending),120);else startPetIdle();
@@ -797,7 +837,7 @@ function findOwnedBy(action){return shop.find(i=>i.action===action&&(state.inven
 function petNeed(name){
   if(cur!=='pet')return;
   updatePetNeeds();state.pet.message='还缺'+name+'，去商城准备一下吧～';save();setPlaybackAudioSession();catMeow();toast('需要先兑换'+name);
-  const m=$('#petMessage');if(m)m.textContent=state.pet.message;
+  const m=$('#petMessage');if(m)m.innerHTML='<span>奶糕说</span>'+esc(state.pet.message);
 }
 function setPetScene(scene='',phase=''){
   const stage=$('#petStage');
@@ -809,7 +849,12 @@ function setPetScene(scene='',phase=''){
 function setSceneOverlay(html=''){
   const o=$('#petSceneOverlay');if(o)o.innerHTML=html;
 }
+function setStoryArt(name,label){
+  const stage=$('#petStage');if(stage)stage.classList.add('pet-story-active');
+  setSceneOverlay(sceneArt(name,label));
+}
 function resetPetScene(){
+  const stage=$('#petStage');if(stage)stage.classList.remove('pet-story-active');
   setPetScene();setSceneOverlay('');
 }
 function commitPetItemUse(i,r){
@@ -838,12 +883,14 @@ function runFeedingScene(i,r){
   },650);
   petDelay(()=>{
     setPetScene('feed','eat');
-    setPetVisual(r.cls,r.text,r.fx,r.prop);
+    setStoryArt('feed','奶糕低头认真吃饭');
+    setPetVisual(r.cls,r.text,r.fx,'');
     playPetSound(r.sound);
   },1250);
   petDelay(()=>{
     setPetScene('feed','lick');
-    setPetVisual('feed-lick','奶糕吃得差不多了，抬头舔了舔嘴巴。','<span class="lick-mark">〰</span>',r.prop);
+    setStoryArt('feed','吃饱以后舔舔嘴巴');
+    setPetVisual('feed-lick','奶糕吃得差不多了，抬头舔了舔嘴巴。','<span class="lick-mark">〰</span>','');
   },3000);
   petDelay(()=>{
     finishSceneWithEffect(i,r,'奶糕吃饱啦，满足地眯起眼睛看着你。');
@@ -877,12 +924,14 @@ function runBrushScene(i,r){
   setPetVisual('attention','梳子靠近，奶糕先回头闻了闻。','','');
   petDelay(()=>{
     setPetScene('brush','stroke');
+    setStoryArt('brush','轻轻从头顶梳到背部');
     setPetVisual('care-brush','从头到背轻轻梳下去，奶糕舒服得眯起眼睛。','<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>','');
     playPetSound('brush');catPurr();
   },700);
   petDelay(()=>{
     setPetScene('brush','lean');
-    setPetVisual('purring','奶糕主动把背拱起来，像是在说“这里也要梳～”。','<span class="heart pet-heart-1">♥</span>','');
+    setStoryArt('brush','舒服得眯起眼睛');
+    setPetVisual('purring-brush','奶糕主动把背拱起来，像是在说“这里也要梳～”。','<span class="heart pet-heart-1">♥</span>','');
   },2300);
   petDelay(()=>{
     finishSceneWithEffect(i,r,'梳完毛啦，奶糕贴过来蹭了蹭你的手。');
@@ -899,11 +948,13 @@ function runBoxScene(i,r){
   },800);
   petDelay(()=>{
     setPetScene('box','hide');
+    setStoryArt('box','嗖的一下钻进纸箱');
     setPetVisual('play-box','嗖的一下钻进纸箱，只露出两只眼睛偷偷看你。','<span class="peek-mark">…</span>','');
     playPetSound('rustle');
   },1550);
   petDelay(()=>{
     setPetScene('box','peek');
+    setStoryArt('box','从纸箱里探出脑袋');
     setPetVisual('box-peek','奶糕从纸箱里探出脑袋：被你发现啦！','<span class="heart pet-heart-1">♥</span>','');
   },3200);
   petDelay(()=>{
@@ -1012,7 +1063,7 @@ addEventListener('resize',syncLandscape,{passive:true});
 addEventListener('orientationchange',()=>setTimeout(syncLandscape,120),{passive:true});
 addEventListener('pageshow',()=>{syncLandscape();tryLandscapeLock()});
 document.addEventListener('pointerdown',tryLandscapeLock,{once:true,passive:true});
-document.addEventListener('pointerdown',unlockAudio,{passive:true});
+document.addEventListener('pointerdown',()=>{unlockAudio();primeCatMedia()},{once:true,capture:true,passive:true});
 syncLandscape();
 setDefaultAudioSession();
 document.addEventListener('visibilitychange',()=>{
@@ -1032,7 +1083,7 @@ function startVitalsHeartbeat(){
     else if(cur==='pet'&&!petBusy)renderPet();
   },60000);
 }
-renderNav();home();startVitalsHeartbeat();
+primeCatMedia();renderNav();home();startVitalsHeartbeat();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
