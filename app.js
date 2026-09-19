@@ -21,27 +21,94 @@ const shop=[
 ['med-kit','医疗','护理包','🧰',8,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',12,'treat'],['med-rest','医疗','休息垫','🛏️',6,'rest']
 ].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5]}));
 const petReactions={
-'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4},
-'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5},
-'food-can':{cls:'eating-can',notice:'罐头刚打开，奶糕就一路小跑过来了。',text:'奶糕埋头吃主食罐头，吃得特别专心。',prop:'<span class="prop-can">🥫</span><span class="prop-bowl">🥣</span>',fx:'<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',sound:'pop',mood:5},
-'food-freeze':{cls:'eating-freeze',notice:'冻干发出沙沙声，奶糕抬头盯住了袋子。',text:'奶糕叼走一块冻干，嚼得嘎嘣脆。',prop:'<span class="prop-freeze">🍗</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:5},
-'toy-wand':{cls:'play-wand',notice:'逗猫棒一晃，奶糕的眼睛立刻跟着移动。',text:'奶糕压低身体、瞄准，然后猛地扑向逗猫棒！',prop:'<span class="prop-wand">🪶</span>',fx:'<span class="toy-motion">✦</span>',sound:'toy',mood:6},
-'toy-ball':{cls:'play-ball',notice:'小球滚过地板，奶糕歪头盯了两秒。',text:'奶糕用爪子一拍，小球滚远了，它马上追过去。',prop:'<span class="prop-ball">⚽</span>',fx:'<span class="speed-line">➜</span>',sound:'ball',mood:6},
-'toy-scratch':{cls:'play-scratch',notice:'奶糕走到猫抓板旁边闻了闻。',text:'奶糕前爪伸直，在猫抓板上认真抓了好几下。',prop:'<span class="prop-scratch">🧶</span>',fx:'<span class="scratch-line">///</span>',sound:'scratch',mood:5},
-'toy-box':{cls:'play-box',notice:'纸箱刚放下，奶糕绕着它转了一圈。',text:'奶糕钻进纸箱，只露出脑袋偷偷观察外面。',prop:'<span class="prop-box">📦</span>',fx:'<span class="peek-mark">…</span>',sound:'rustle',mood:6},
-'care-brush':{cls:'care-brush',notice:'梳子靠近时，奶糕先回头闻了闻。',text:'从头到背轻轻梳毛，奶糕眯着眼睛坐得很稳。',prop:'<span class="prop-brush">🪮</span>',fx:'<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>',sound:'brush',mood:5},
-'care-bath':{cls:'care-bath',notice:'听见水声，奶糕往后缩了一小步。',text:'温水花洒轻轻冲洗，泡泡洗掉脏东西，最后甩了甩毛。',prop:'<span class="prop-shower">🚿</span>',fx:'<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>',sound:'splash',mood:2},
-'care-towel':{cls:'care-towel',notice:'大毛巾铺开，奶糕站在原地看了看。',text:'毛巾轻轻包住奶糕，把湿湿的毛擦干。',prop:'<span class="prop-towel">🧺</span>',fx:'<span class="warm-line">☀</span>',sound:'rustle',mood:4},
-'care-nail':{cls:'care-nail',notice:'奶糕把爪子缩了一下，但还是乖乖坐好。',text:'只做模拟指甲护理：轻轻托住爪子，一只一只检查。',prop:'<span class="prop-nail">✨</span>',fx:'<span class="paw-mark">🐾</span>',sound:'clip',mood:2},
-'med-kit':{cls:'med-kit',notice:'护理包打开，奶糕安静地看着里面的东西。',text:'完成一次温和的模拟护理，奶糕随后趴下休息。',prop:'<span class="prop-kit">🧰</span>',fx:'<span class="care-plus">＋</span>',sound:'care',mood:3},
-'med-cone':{cls:'med-cone',notice:'护理头套拿出来，奶糕先疑惑地歪了歪头。',text:'奶糕戴上模拟护理头套，走了两步又停下来适应。',prop:'<span class="prop-cone">🔶</span>',fx:'<span class="question-mark">?</span>',sound:'rustle',mood:1},
-'med-check':{cls:'med-check',notice:'听诊器靠近，奶糕安静地坐着。',text:'模拟体检完成：听一听、看一看，然后奖励奶糕休息。',prop:'<span class="prop-check">🩺</span>',fx:'<span class="care-plus">＋</span>',sound:'softcare',mood:3},
-'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5}
+'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4,effect:{hunger:34,mood:3}},
+'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5,effect:{hunger:18,mood:5}},
+'food-can':{cls:'eating-can',notice:'罐头刚打开，奶糕就一路小跑过来了。',text:'奶糕埋头吃主食罐头，吃得特别专心。',prop:'<span class="prop-can">🥫</span><span class="prop-bowl">🥣</span>',fx:'<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',sound:'pop',mood:5,effect:{hunger:45,mood:4}},
+'food-freeze':{cls:'eating-freeze',notice:'冻干发出沙沙声，奶糕抬头盯住了袋子。',text:'奶糕叼走一块冻干，嚼得嘎嘣脆。',prop:'<span class="prop-freeze">🍗</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:5,effect:{hunger:25,mood:5}},
+'toy-wand':{cls:'play-wand',notice:'逗猫棒一晃，奶糕的眼睛立刻跟着移动。',text:'奶糕压低身体、瞄准，然后猛地扑向逗猫棒！',prop:'<span class="prop-wand">🪶</span>',fx:'<span class="toy-motion">✦</span>',sound:'toy',mood:6,effect:{mood:10,hunger:-2,clean:-1}},
+'toy-ball':{cls:'play-ball',notice:'小球滚过地板，奶糕歪头盯了两秒。',text:'奶糕用爪子一拍，小球滚远了，它马上追过去。',prop:'<span class="prop-ball">⚽</span>',fx:'<span class="speed-line">➜</span>',sound:'ball',mood:6,effect:{mood:9,hunger:-2}},
+'toy-scratch':{cls:'play-scratch',notice:'奶糕走到猫抓板旁边闻了闻。',text:'奶糕前爪伸直，在猫抓板上认真抓了好几下。',prop:'<span class="prop-scratch">🧶</span>',fx:'<span class="scratch-line">///</span>',sound:'scratch',mood:5,effect:{mood:7,clean:-1}},
+'toy-box':{cls:'play-box',notice:'纸箱刚放下，奶糕绕着它转了一圈。',text:'奶糕钻进纸箱，只露出脑袋偷偷观察外面。',prop:'<span class="prop-box">📦</span>',fx:'<span class="peek-mark">…</span>',sound:'rustle',mood:6,effect:{mood:8}},
+'care-brush':{cls:'care-brush',notice:'梳子靠近时，奶糕先回头闻了闻。',text:'从头到背轻轻梳毛，奶糕眯着眼睛坐得很稳。',prop:'<span class="prop-brush">🪮</span>',fx:'<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>',sound:'brush',mood:5,effect:{clean:14,mood:4}},
+'care-bath':{cls:'care-bath',notice:'听见水声，奶糕往后缩了一小步。',text:'温水花洒轻轻冲洗，泡泡洗掉脏东西，最后甩了甩毛。',prop:'<span class="prop-shower">🚿</span>',fx:'<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>',sound:'splash',mood:2,effect:{clean:65,mood:2}},
+'care-towel':{cls:'care-towel',notice:'大毛巾铺开，奶糕站在原地看了看。',text:'毛巾轻轻包住奶糕，把湿湿的毛擦干。',prop:'<span class="prop-towel">🧺</span>',fx:'<span class="warm-line">☀</span>',sound:'rustle',mood:4,effect:{clean:10,mood:3}},
+'care-nail':{cls:'care-nail',notice:'奶糕把爪子缩了一下，但还是乖乖坐好。',text:'只做模拟指甲护理：轻轻托住爪子，一只一只检查。',prop:'<span class="prop-nail">✨</span>',fx:'<span class="paw-mark">🐾</span>',sound:'clip',mood:2,effect:{clean:5,mood:1}},
+'med-kit':{cls:'med-kit',notice:'护理包打开，奶糕安静地看着里面的东西。',text:'完成一次温和的模拟护理，奶糕随后趴下休息。',prop:'<span class="prop-kit">🧰</span>',fx:'<span class="care-plus">＋</span>',sound:'care',mood:3,effect:{health:28,mood:2}},
+'med-cone':{cls:'med-cone',notice:'护理头套拿出来，奶糕先疑惑地歪了歪头。',text:'奶糕戴上模拟护理头套，走了两步又停下来适应。',prop:'<span class="prop-cone">🔶</span>',fx:'<span class="question-mark">?</span>',sound:'rustle',mood:1,effect:{health:15,mood:-1}},
+'med-check':{cls:'med-check',notice:'听诊器靠近，奶糕安静地坐着。',text:'模拟体检完成：听一听、看一看，然后奖励奶糕休息。',prop:'<span class="prop-check">🩺</span>',fx:'<span class="care-plus">＋</span>',sound:'softcare',mood:3,effect:{health:38,mood:2}},
+'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5,effect:{health:20,mood:5,hunger:-1}}
 };
-const init=()=>({points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:{mood:82,message:'等你完成任务，我们一起玩吧！'},customRewards:[],rewardLog:[],shopCat:'食物'});
+const nowMs=()=>Date.now();
+const petDefaults=()=>({
+  mood:85,hunger:84,cleanliness:90,health:100,
+  message:'等你完成任务，我们一起玩吧！',
+  lastUpdated:nowMs(),vitalsVersion:1
+});
+const init=()=>({points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],shopCat:'食物'});
 const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
 let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false;
 const save=()=>localStorage.setItem(K,JSON.stringify(state));
+function clampPet(v){return Math.max(0,Math.min(100,Math.round(v)))}
+function ensurePetVitals(){
+  const p=state.pet&&typeof state.pet==='object'?state.pet:{};
+  const legacy=!p.vitalsVersion;
+  state.pet={...petDefaults(),...p};
+  if(legacy){
+    state.pet.hunger=72;
+    state.pet.cleanliness=78;
+    state.pet.health=96;
+    state.pet.mood=Math.min(Number(p.mood)||85,88);
+    state.pet.lastUpdated=nowMs();
+    state.pet.vitalsVersion=1;
+  }
+}
+function petConditionMessage(){
+  const p=state.pet;
+  if(p.health<45)return '奶糕有点不舒服，需要护理一下。';
+  if(p.hunger<22)return '奶糕肚子饿了，一直在饭碗旁边转。';
+  if(p.cleanliness<24)return '奶糕身上有点脏，该洗澡或梳毛了。';
+  if(p.health<70)return '奶糕今天有点没精神，多休息和护理会更好。';
+  if(p.hunger<42)return '奶糕有点饿了，看到食物会特别期待。';
+  if(p.cleanliness<45)return '奶糕的毛有点乱，想要梳一梳。';
+  if(p.mood<45)return '奶糕有点无聊，想和你玩一会儿。';
+  return '奶糕状态不错，正安静地待在小屋里。';
+}
+function updatePetNeeds(now=nowMs(),persist=true){
+  ensurePetVitals();
+  const p=state.pet;
+  let elapsed=Math.max(0,Math.min((now-(Number(p.lastUpdated)||now))/3600000,24*14));
+  if(elapsed<0.02){p.lastUpdated=now;if(persist)save();return}
+  let remaining=elapsed;
+  while(remaining>0){
+    const step=Math.min(1,remaining);
+    p.hunger=clampPet(p.hunger-3*step);
+    p.cleanliness=clampPet(p.cleanliness-1.35*step);
+    const stressed=p.hunger<22||p.cleanliness<20;
+    const mildlyStressed=p.hunger<38||p.cleanliness<35;
+    if(stressed)p.health=clampPet(p.health-1.35*step);
+    else if(p.hunger>55&&p.cleanliness>55)p.health=clampPet(p.health+0.18*step);
+    if(stressed||p.health<60)p.mood=clampPet(p.mood-1.15*step);
+    else if(mildlyStressed)p.mood=clampPet(p.mood-0.45*step);
+    else p.mood=clampPet(p.mood-0.08*step);
+    remaining-=step;
+  }
+  p.lastUpdated=now;
+  p.message=petConditionMessage();
+  if(persist)save();
+}
+function applyPetEffect(effect={}){
+  updatePetNeeds(nowMs(),false);
+  const p=state.pet;
+  if(effect.hunger)p.hunger=clampPet(p.hunger+effect.hunger);
+  if(effect.clean)p.cleanliness=clampPet(p.cleanliness+effect.clean);
+  if(effect.health)p.health=clampPet(p.health+effect.health);
+  if(effect.mood)p.mood=clampPet(p.mood+effect.mood);
+  p.lastUpdated=nowMs();
+  save();
+}
+function petStatusClass(v){return v<25?'critical':v<50?'low':v<75?'mid':'good'}
+ensurePetVitals();
+updatePetNeeds(nowMs(),false);
 if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
   state.fish=(Number(state.fish)||0)+6;
   state.pet.message='奶糕送来6条欢迎小鱼干，今天也一起加油吧！';
@@ -49,6 +116,7 @@ if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
   localStorage.setItem(STARTER_FISH_KEY,'1');
   starterFishGranted=true;
 }
+save();
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
 const rec=(k,d=new Date())=>{
@@ -183,12 +251,14 @@ async function catPurr(){setPlaybackAudioSession();if(!(await playRealCat('purr'
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function renderNav(){nav.innerHTML=navs.map(([id,l,i])=>`<button class="nav-btn ${cur===id?'active':''}" data-p="${id}"><i>${i}</i>${l}</button>`).join('');nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>go(b.dataset.p))}
 function go(p){
+  updatePetNeeds();
   const prev=cur;
   if(prev==='pet'&&p!=='pet')stopPetSession();
   cur=p;clearInterval(timer);renderNav();render();
 }
 function render(){({home,chinese:()=>subject('chinese'),math:()=>subject('math'),english:()=>subject('english'),sport:()=>subject('sport'),shop:renderShop,pet:renderPet,rewards:renderRewards,calendar:renderCalendar}[cur]||home)()}
 function home(){
+  updatePetNeeds();
   const d=new Date(),tt=tasks(d),cc=core(d),n=cc.filter(t=>done(t.id)).length,p=cc.length?Math.round(n/cc.length*100):0;
   const nextReward=fixedRewards.find(r=>state.points<r.points);
   page.innerHTML=`<div class="home-simple">
@@ -213,8 +283,13 @@ function home(){
       <div class="home-pet-visual">${catSvg('mini')}</div>
       <div class="home-pet-info">
         <div class="home-pet-title"><div><b>奶糕</b><span>我的橘猫伙伴</span></div><button class="plain-link" data-go="pet">去互动 ›</button></div>
-        <div class="home-pet-meta"><span>💗 ${state.pet.mood}%</span><span>🐟 ${state.fish}</span></div>
-        <p>${esc(state.pet.message)}</p>
+        <div class="home-pet-vitals">
+          <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${state.pet.hunger}</span>
+          <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${state.pet.cleanliness}</span>
+          <span class="${petStatusClass(state.pet.health)}">❤️ ${state.pet.health}</span>
+          <span>🐟 ${state.fish}</span>
+        </div>
+        <p>${esc(petConditionMessage())}</p>
       </div>
     </section>
 
@@ -251,7 +326,7 @@ function taskCard(t){
 }
 function complete(id){
   const r=rec(key(),new Date());if(r.completed.includes(id))return;
-  r.completed.push(id);state.points+=2;state.fish++;state.pet.mood=Math.min(100,state.pet.mood+2);
+  r.completed.push(id);state.points+=2;state.fish++;updatePetNeeds(nowMs(),false);state.pet.mood=clampPet(state.pet.mood+2);
   state.pet.message='收到一条小鱼干！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
   soundCheckin();toast('完成啦！+2分 · 🐟 +1');
   const back=cur;
@@ -378,29 +453,43 @@ function startPetIdle(){
 }
 function stopPetIdle(){clearPetTimers()}
 function renderPet(){
+  updatePetNeeds();
   startPetSession();
   const own=shop.filter(i=>(state.inventory[i.id]||0)>0);
   const quick=[
-    ['feed','🥣','喂食'],['play','🪶','玩耍'],['bath','🫧','洗澡'],['treat','🩺','护理'],['pet','🤚','摸摸'],['meow','🔊','叫一声']
+    ['feed','🥣',state.pet.hunger<45?'喂食':'喂食'],
+    ['play','🪶','玩耍'],
+    ['bath','🫧',state.pet.cleanliness<45?'洗澡':'洗澡'],
+    ['treat','🩺',state.pet.health<70?'护理':'护理'],
+    ['pet','🤚','摸摸'],['meow','🔊','叫一声']
   ];
   page.innerHTML=`<div class="page-panel pet-page">
     <div class="section-hero">
       <div><h1>🐾 奶糕的小屋</h1><p>完成任务获得小鱼干，换用品后可以和奶糕真实感互动。</p></div>
-      <div class="pet-top-badges"><b>🐟 ${state.fish}</b><b>💗 ${state.pet.mood}%</b></div>
+      <div class="pet-top-badges"><b>🐟 ${state.fish}</b><b class="pet-health-badge ${petStatusClass(state.pet.health)}">${state.pet.health<45?'🤒 需要护理':'❤️ '+state.pet.health+'%'}</b></div>
     </div>
     <div class="pet-large">
       <div class="pet-stage" id="petStage">
         <div class="pet-room-bg"><span class="window">☁️</span><span class="plant">🪴</span><span class="bed">🧺</span></div>
         <div class="pet-message" id="petMessage">${esc(state.pet.message)}</div>
+        <div class="pet-condition-layer">
+          ${state.pet.hunger<35?'<span class="pet-condition hungry">🍽️</span>':''}
+          ${state.pet.cleanliness<35?'<span class="pet-condition dirty">✦</span>':''}
+          ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
+        </div>
         <div class="pet-effect-layer" id="petEffects"></div>
-        <div class="cat-avatar idle" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
+        <div class="cat-avatar idle ${state.pet.health<45?'pet-sick':''}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
         <div class="pet-prop" id="petProp"></div>
       </div>
       <div class="card pet-control-card">
         <h3>和奶糕互动</h3>
         <div class="pet-quick-actions">${quick.map(x=>`<button class="pet-quick" data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}</div>
-        <div class="pet-status"><span>💗 心情</span><b>${state.pet.mood}%</b></div>
-        <div class="mood-bar"><i style="width:${state.pet.mood}%"></i></div>
+        <div class="pet-vitals">
+          <div class="pet-vital"><div><span>🍽️ 饱腹</span><b>${state.pet.hunger}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.hunger)}"><i style="width:${state.pet.hunger}%"></i></div></div>
+          <div class="pet-vital"><div><span>🫧 清洁</span><b>${state.pet.cleanliness}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.cleanliness)}"><i style="width:${state.pet.cleanliness}%"></i></div></div>
+          <div class="pet-vital"><div><span>❤️ 健康</span><b>${state.pet.health}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${state.pet.health}%"></i></div></div>
+          <div class="pet-vital"><div><span>😊 心情</span><b>${state.pet.mood}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${state.pet.mood}%"></i></div></div>
+        </div>
         <div class="sound-tip">🔊 摸摸：真实猫叫 → 呼噜；“叫一声”会直接播放真实猫叫</div>
         <h3>我的宠物用品</h3>
         <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
@@ -421,7 +510,7 @@ function petAction(action){
     petBusy=true;setPlaybackAudioSession();unlockAudio();catMeow();setPetVisual('attention','你的手靠近，奶糕先闻了闻。');
     petDelay(()=>{
       setPetVisual('purring','奶糕眯起眼睛，把脑袋轻轻靠过来。','<span class="heart pet-heart-1">♥</span><span class="heart pet-heart-2">♥</span>');
-      catPurr();state.pet.mood=Math.min(100,state.pet.mood+2);save();finishPetAction('奶糕心情很好，尾巴轻轻摆着。')
+      catPurr();applyPetEffect({mood:2});finishPetAction('奶糕心情很好，尾巴轻轻摆着。')
     },620);return;
   }
   if(action==='meow'){
@@ -437,7 +526,7 @@ function petAction(action){
 function findOwnedBy(action){return shop.find(i=>i.action===action&&(state.inventory[i.id]||0)>0)}
 function petNeed(name){
   if(cur!=='pet')return;
-  state.pet.message='还缺'+name+'，去商城准备一下吧～';save();setPlaybackAudioSession();catMeow();toast('需要先兑换'+name);
+  updatePetNeeds();state.pet.message='还缺'+name+'，去商城准备一下吧～';save();setPlaybackAudioSession();catMeow();toast('需要先兑换'+name);
   const m=$('#petMessage');if(m)m.textContent=state.pet.message;
 }
 function usePetItem(id){
@@ -449,7 +538,7 @@ function usePetItem(id){
   setPetVisual('attention',r.notice,'',r.prop);
   soundRustle();
   petDelay(()=>{
-    state.pet.mood=Math.min(100,state.pet.mood+(r.mood||3));
+    applyPetEffect(r.effect||{mood:r.mood||3});
     setPetVisual(r.cls,r.text,r.fx,r.prop);
     playPetSound(r.sound);save();toast(i.name+' 已使用');
     petDelay(()=>{
@@ -527,7 +616,11 @@ syncLandscape();
 setDefaultAudioSession();
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden&&cur==='pet')stopPetSession();
-  else if(!document.hidden&&cur==='pet')startPetIdle();
+  else if(!document.hidden){
+    updatePetNeeds();
+    if(cur==='pet')renderPet();
+    else if(cur==='home')home();
+  }
 });
 renderNav();home();
 if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
