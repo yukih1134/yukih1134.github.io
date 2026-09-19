@@ -92,3 +92,62 @@ body{background:linear-gradient(180deg,#fff9f9,#fff5f6)!important;color:var(--v3
   .v3-avatar[data-zone="bowl"]{--pet-x:88px;--pet-y:6px}.v3-avatar[data-zone="window"]{--pet-x:76px;--pet-y:-28px}.v3-avatar[data-zone="box"]{--pet-x:-58px;--pet-y:8px}.v3-avatar[data-zone="bed"]{--pet-x:-28px;--pet-y:8px}
   .v3-home-cat{width:104px!important;height:80px!important}
 }
+
+
+/* v3.3 flat-cat layout hardening after iPhone QA */
+.v3-mini-cat{
+  position:absolute!important;
+  left:14px!important;
+  bottom:6px!important;
+  top:auto!important;
+  right:auto!important;
+  width:132px!important;
+  height:102px!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:visible!important;
+}
+.v3-home-cat{
+  width:126px!important;
+  height:96px!important;
+  display:grid!important;
+  place-items:center!important;
+}
+.v3-home-cat .cat-svg{
+  width:126px!important;
+  height:96px!important;
+  display:block!important;
+  overflow:visible!important;
+}
+.v3-pet-stage .cat-avatar.v3-avatar{
+  position:absolute!important;
+  left:50%!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:10px!important;
+  width:172px!important;
+  height:142px!important;
+  margin:0!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:visible!important;
+}
+.v3-pet-stage .cat-avatar.v3-avatar .cat-svg{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+  filter:drop-shadow(0 9px 9px rgba(102,74,50,.14));
+}
+.v3-pet-stage .cat-avatar.v3-avatar .cat-eyes-closed{opacity:0}
+.v3-pet-stage .cat-avatar.v3-avatar.purring .cat-eyes,
+.v3-pet-stage .cat-avatar.v3-avatar.sleeping .cat-eyes,
+.v3-pet-stage .cat-avatar.v3-avatar.idle-blink .cat-eyes{opacity:0}
+.v3-pet-stage .cat-avatar.v3-avatar.purring .cat-eyes-closed,
+.v3-pet-stage .cat-avatar.v3-avatar.sleeping .cat-eyes-closed,
+.v3-pet-stage .cat-avatar.v3-avatar.idle-blink .cat-eyes-closed{opacity:1}
+@media(max-height:420px){
+  .v3-mini-cat{left:10px!important;bottom:4px!important;width:108px!important;height:82px!important}
+  .v3-home-cat,.v3-home-cat .cat-svg{width:104px!important;height:80px!important}
+  .v3-pet-stage .cat-avatar.v3-avatar{width:142px!important;height:116px!important;bottom:5px!important}
+}
