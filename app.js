@@ -768,6 +768,35 @@ function roomItemLayer(){
     ${has('care-brush')?'<button class="room-object room-brush" data-room-item="care-brush" aria-label="梳毛刷">✦</button>':''}
   </div>`;
 }
+function setPetZone(zone='center',walking=false){
+  const a=$('#catAvatar');if(!a)return;
+  a.dataset.zone=zone;
+  a.classList.toggle('v3-walking',!!walking);
+}
+function preferredPetZone(){
+  const p=state.pet,h=new Date().getHours(),has=id=>(state.inventory[id]||0)>0;
+  if(p.health<45)return has('med-rest')?'bed':'center';
+  if(p.hunger<35)return 'bowl';
+  if(h>=21||h<7)return has('med-rest')?'bed':'center';
+  if(has('toy-box')&&Math.random()<.28)return 'box';
+  if(Math.random()<.34)return 'window';
+  return 'center';
+}
+function autonomousPetStep(){
+  if(cur!=='pet'||petBusy||!$('#catAvatar'))return;
+  const target=preferredPetZone(),current=$('#catAvatar').dataset.zone||'center';
+  if(target===current)return;
+  setV3SpriteState('walk');setPetZone(target,true);
+  const msg=target==='bowl'?'奶糕慢慢走到饭碗旁边。':target==='window'?'奶糕走到窗边，好奇地看看外面。':target==='box'?'奶糕朝纸箱走过去，想看看里面。':target==='bed'?'奶糕有点困了，走向自己的小窝。':'奶糕在房间里慢慢走了一圈。';
+  const m=$('#petMessage');if(m)m.innerHTML='<span>奶糕说</span>'+esc(msg);
+  petDelay(()=>{
+    if(!$('#catAvatar'))return;
+    $('#catAvatar').classList.remove('v3-walking');
+    const endState=target==='bed'?'sleep':target==='box'?'curious':state.pet.health<45?'sick':'idle';
+    const pos=V3_META.states?.[endState]||V3_META.states?.idle||[0,0],el=$('#petV3Sprite');
+    if(el){el.dataset.v3State=endState;el.style.setProperty('--sx',pos[0]);el.style.setProperty('--sy',pos[1])}
+  },850);
+}
 function idleOptionsForPet(){
   const p=state.pet;
   if(p.health<45)return [
@@ -798,12 +827,16 @@ function startPetIdle(){
   if(cur!=='pet'||petBusy||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const schedule=()=>petDelay(()=>{
     if(petBusy||!$('#catAvatar'))return;
-    const idles=idleOptionsForPet();
-    const x=idles[Math.floor(Math.random()*idles.length)];
-    setPetVisual(x[0],x[1]);
-    petDelay(()=>{if(!petBusy&&$('#catAvatar'))setPetVisual('idle','奶糕安静地待在小屋里。')},1100);
+    if(Math.random()<.56){
+      autonomousPetStep();
+    }else{
+      const idles=idleOptionsForPet();
+      const x=idles[Math.floor(Math.random()*idles.length)];
+      setPetVisual(x[0],x[1]);
+      petDelay(()=>{if(!petBusy&&$('#catAvatar'))setPetVisual('idle','奶糕安静地待在小屋里。')},1100);
+    }
     schedule();
-  },5200+Math.random()*3800);
+  },4200+Math.random()*3600);
   schedule();
 }
 function stopPetIdle(){clearPetTimers()}
@@ -869,6 +902,7 @@ function renderPet(){
   });
   page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
   page.querySelectorAll('[data-room-item]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.roomItem));
+  setPetZone(preferredPetZone());
   if(pending)petDelay(()=>petAction(pending),120);else startPetIdle();
 }
 function petAction(action){
@@ -931,6 +965,7 @@ function finishSceneWithEffect(i,r,end,cls='happy',keepProp=''){
   petDelay(()=>{resetPetScene();finishPetAction(end)},900);
 }
 function runFeedingScene(i,r){
+  setPetZone('bowl',true);
   setPetScene('feed','approach');
   setSceneOverlay('<div class="scene-bowl"><span class="scene-food food-1"></span><span class="scene-food food-2"></span><span class="scene-food food-3"></span><span class="scene-food food-4"></span><b>♡</b></div>');
   setPetVisual('feed-approach',r.notice,'',r.prop);
@@ -955,6 +990,7 @@ function runFeedingScene(i,r){
   },3900);
 }
 function runBathScene(i,r){
+  setPetZone('center');
   setPetScene('bath','notice');
   setSceneOverlay('<div class="scene-tub"><span class="tub-rim"></span><span class="water-line"></span></div><div class="scene-shower">⌇⌇⌇</div>');
   setPetVisual('bath-notice','听见水声，奶糕耳朵动了一下，往后退了半步。','','<span class="prop-shower">🚿</span>');
@@ -977,6 +1013,7 @@ function runBathScene(i,r){
   },4650);
 }
 function runBrushScene(i,r){
+  setPetZone('center');
   setPetScene('brush','start');
   setSceneOverlay('<div class="scene-brush-track"><span class="scene-brush-tool">🪮</span></div>');
   setPetVisual('attention','梳子靠近，奶糕先回头闻了闻。','','');
@@ -996,6 +1033,7 @@ function runBrushScene(i,r){
   },3400);
 }
 function runBoxScene(i,r){
+  setPetZone('box',true);
   setPetScene('box','approach');
   setSceneOverlay('<div class="scene-cardboard"><span class="box-ear left"></span><span class="box-ear right"></span><b>奶糕的小纸箱 ♡</b></div>');
   setPetVisual('box-approach','奶糕发现纸箱，围着它走了一圈。','','');
