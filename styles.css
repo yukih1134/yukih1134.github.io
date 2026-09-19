@@ -428,3 +428,65 @@ html,body{background:var(--bg)}
 @media(max-height:390px){
   .pet-room-v2{min-height:220px}.pet-room-v2 .cat-avatar{width:205px;height:162px;margin-top:25px}.room-window{border-width:6px}.room-shelf{font-size:19px}.room-box{font-size:44px}.room-bed{transform:scale(.85);transform-origin:center bottom}.pet-message-v2{max-width:190px;font-size:10px}
 }
+
+
+/* v22 multi-step pet interaction scenes */
+.pet-scene-overlay{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.pet-room-v2.scene-feed .room-bowl{opacity:.15}
+.scene-bowl{position:absolute;left:11%;bottom:9%;width:86px;height:38px;border-radius:12px 12px 28px 28px;background:linear-gradient(#f9a8ba,#df7892);box-shadow:0 6px 0 #ba6679,0 10px 16px rgba(123,74,71,.16);z-index:3}
+.scene-bowl b{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:18px}
+.scene-food{position:absolute;width:11px;height:8px;border-radius:50%;background:#9b633d;top:-2px;box-shadow:inset 0 2px 2px rgba(255,255,255,.18);transition:.45s ease}.food-1{left:14px}.food-2{left:31px;top:-6px}.food-3{left:49px}.food-4{left:65px;top:-5px}
+.scene-feed.phase-eat .scene-food{animation:foodDisappear 1.6s ease forwards}.scene-feed.phase-eat .food-2{animation-delay:.25s}.scene-feed.phase-eat .food-3{animation-delay:.55s}.scene-feed.phase-eat .food-4{animation-delay:.9s}
+@keyframes foodDisappear{0%{opacity:1;transform:scale(1)}70%{opacity:1;transform:scale(.8)}100%{opacity:0;transform:scale(.2) translateY(10px)}}
+.scene-feed.phase-approach .cat-avatar{animation:walkToBowl .65s ease-in-out both}
+.scene-feed.phase-sniff .cat-avatar{transform:translate(-72px,18px) scale(.96)}
+.scene-feed.phase-sniff .cat-head-g{animation:sniffBowl .48s ease-in-out infinite}
+.scene-feed.phase-eat .cat-avatar.eating-kibble,.scene-feed.phase-eat .cat-avatar.eating-can,.scene-feed.phase-eat .cat-avatar.eating-freeze,.scene-feed.phase-eat .cat-avatar.eating-treat{animation:bodyEatAtBowl .42s ease-in-out infinite!important}
+.scene-feed.phase-lick .cat-avatar{transform:translate(-64px,8px) scale(.98)}
+@keyframes walkToBowl{0%{transform:translate(0,0)}35%{transform:translate(-25px,-7px) rotate(-2deg)}70%{transform:translate(-52px,2px) rotate(2deg)}100%{transform:translate(-72px,18px) scale(.96)}}
+@keyframes sniffBowl{0%,100%{transform:translateY(1px) rotate(-2deg)}50%{transform:translateY(8px) rotate(1deg)}}
+@keyframes bodyEatAtBowl{0%,100%{transform:translate(-72px,18px) scale(.96) rotate(-1deg)}50%{transform:translate(-72px,24px) scale(.96) rotate(1deg)}}
+
+.scene-tub{position:absolute;left:50%;bottom:6%;width:190px;height:82px;transform:translateX(-50%);border-radius:18px 18px 42px 42px;background:linear-gradient(#ffe6ec,#f6bccd);box-shadow:0 8px 0 #dda1b4,0 12px 22px rgba(113,79,83,.12)}
+.scene-tub .tub-rim{position:absolute;left:-7px;right:-7px;top:-8px;height:19px;border-radius:50%;background:#fff4f7;border:3px solid #e8afc0}
+.scene-tub .water-line{position:absolute;left:12px;right:12px;top:9px;height:17px;border-radius:50%;background:rgba(126,202,225,.42);box-shadow:inset 0 4px 4px rgba(255,255,255,.55)}
+.scene-shower{position:absolute;right:17%;top:18%;font-size:28px;line-height:.65;color:#7fc9df;opacity:0}
+.scene-bath.phase-wash .scene-shower,.scene-bath.phase-rinse .scene-shower{opacity:1;animation:showerRain .55s linear infinite}
+.scene-bath.phase-notice .cat-avatar{animation:bathBackAway .8s ease both}
+.scene-bath.phase-wash .cat-avatar{animation:bathInTub .6s ease both}
+.scene-bath.phase-wash .cat-avatar.care-bath{animation:bathWashBody .62s ease-in-out infinite!important}
+.scene-bath.phase-rinse .cat-avatar{transform:translate(0,37px) scale(.91)}
+.scene-bath.phase-shake .cat-avatar{animation:fullShake .28s linear 5}
+.scene-bath.phase-shake .scene-tub{opacity:.55}
+.splash-drop{position:absolute;color:#7fcbe2;font-size:30px;font-weight:900;animation:dropFly .7s ease-out forwards}.splash-drop.d1{left:36%;top:38%;--dx:-62px;--dy:-48px}.splash-drop.d2{left:51%;top:30%;--dx:22px;--dy:-65px}.splash-drop.d3{left:62%;top:42%;--dx:74px;--dy:-36px}
+@keyframes showerRain{0%{transform:translateY(-4px);opacity:.45}50%{opacity:1}100%{transform:translateY(6px);opacity:.35}}
+@keyframes bathBackAway{0%{transform:translate(0,0)}100%{transform:translate(45px,2px) rotate(2deg)}}
+@keyframes bathInTub{0%{transform:translate(45px,2px) rotate(2deg)}100%{transform:translate(0,37px) scale(.91)}}
+@keyframes bathWashBody{0%,100%{transform:translate(0,37px) scale(.91) rotate(-1deg)}50%{transform:translate(0,39px) scale(.91) rotate(2deg)}}
+@keyframes fullShake{0%{transform:translateX(-7px) rotate(-3deg)}50%{transform:translateX(7px) rotate(3deg)}100%{transform:translateX(-7px) rotate(-3deg)}}
+@keyframes dropFly{0%{opacity:1;transform:translate(0,0) scale(.7)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.2)}}
+
+.scene-brush-track{position:absolute;inset:0}
+.scene-brush-tool{position:absolute;right:22%;top:28%;font-size:40px;filter:drop-shadow(0 5px 5px rgba(80,53,48,.18))}
+.scene-brush.phase-start .scene-brush-tool{animation:brushApproach .7s ease both}
+.scene-brush.phase-stroke .scene-brush-tool{animation:longBrushStroke .95s ease-in-out infinite}
+.scene-brush.phase-stroke .cat-avatar{animation:brushLean .95s ease-in-out infinite}
+.scene-brush.phase-lean .scene-brush-tool{animation:brushAtBack .8s ease-in-out infinite}.scene-brush.phase-lean .cat-avatar{transform:translateY(-2px) scaleX(1.035)}
+@keyframes brushApproach{0%{transform:translate(45px,-18px) rotate(22deg);opacity:0}100%{transform:translate(0,0) rotate(-8deg);opacity:1}}
+@keyframes longBrushStroke{0%{transform:translate(12px,-7px) rotate(-14deg)}50%{transform:translate(-72px,39px) rotate(13deg)}100%{transform:translate(8px,-4px) rotate(-14deg)}}
+@keyframes brushLean{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-4px) scaleX(1.04)}}
+@keyframes brushAtBack{0%,100%{transform:translate(-48px,25px) rotate(8deg)}50%{transform:translate(-78px,40px) rotate(15deg)}}
+
+.scene-cardboard{position:absolute;left:50%;bottom:5%;width:168px;height:84px;transform:translateX(-50%);background:linear-gradient(135deg,#cf9660,#b97a49);border:3px solid #9d633b;border-radius:4px 4px 12px 12px;box-shadow:0 10px 18px rgba(92,62,47,.18);z-index:5;color:#81512f;display:flex;align-items:flex-end;justify-content:center;padding-bottom:13px;font-size:12px;font-weight:900}
+.scene-cardboard:before{content:"♡";position:absolute;left:50%;top:16px;transform:translateX(-50%);font-size:22px;color:#a66247}
+.scene-cardboard .box-ear{position:absolute;top:-22px;width:88px;height:34px;background:#dfaa74;border:3px solid #9d633b}.scene-cardboard .box-ear.left{left:-3px;transform:skewY(8deg)}.scene-cardboard .box-ear.right{right:-3px;transform:skewY(-8deg)}
+.scene-box.phase-approach .cat-avatar{animation:circleBox .8s ease both}.scene-box.phase-jump .cat-avatar{animation:jumpBox .75s ease both}.scene-box.phase-hide .cat-avatar{animation:hideInBox .7s ease both;z-index:4}.scene-box.phase-peek .cat-avatar{animation:peekFromBox .65s ease both;z-index:4}
+.scene-box.phase-hide .scene-cardboard,.scene-box.phase-peek .scene-cardboard{z-index:6}
+@keyframes circleBox{0%{transform:translateX(0)}50%{transform:translateX(62px) rotate(3deg)}100%{transform:translateX(18px) rotate(-2deg)}}
+@keyframes jumpBox{0%{transform:translate(18px,0)}45%{transform:translate(0,-55px) scale(.96)}100%{transform:translate(0,32px) scale(.9)}}
+@keyframes hideInBox{0%{transform:translate(0,32px) scale(.9)}100%{transform:translate(0,92px) scale(.86)}}
+@keyframes peekFromBox{0%{transform:translate(0,92px) scale(.86)}100%{transform:translate(0,48px) scale(.9)}}
+
+@media(max-height:390px){
+  .scene-bowl{transform:scale(.8);transform-origin:left bottom}.scene-tub{transform:translateX(-50%) scale(.78);transform-origin:center bottom}.scene-cardboard{transform:translateX(-50%) scale(.78);transform-origin:center bottom}
+}
