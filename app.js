@@ -800,57 +800,62 @@ function renderPet(){
   startPetSession();
   const own=shop.filter(i=>(state.inventory[i.id]||0)>0);
   const quick=[
-    ['feed','🥣',state.pet.hunger<45?'喂食':'喂食'],
-    ['play','🪶','玩耍'],
-    ['bath','🫧',state.pet.cleanliness<45?'洗澡':'洗澡'],
-    ['treat','🩺',state.pet.health<70?'护理':'护理'],
-    ['pet','🤚','摸摸'],['meow','🔊','听猫叫']
+    ['feed','🥣','喂食'],['bath','🫧','洗澡'],['play','🪶','玩耍'],
+    ['pet','🤚','摸摸'],['treat','🩺','护理'],['meow','🔊','听猫叫']
   ];
-  page.innerHTML=`<div class="page-panel pet-page">
-    <div class="section-hero">
-      <div><h1>奶糕的小屋 ♡</h1><p>学习、陪伴和照顾会让奶糕每天都有不同反应。</p></div>
-      <div class="pet-top-badges"><b>🐟 ${state.fish}</b><b class="pet-health-badge ${petStatusClass(state.pet.health)}">${state.pet.health<45?'🤒 需要护理':'❤️ '+state.pet.health+'%'}</b></div>
-    </div>
-    <div class="pet-large">
-      <div class="pet-stage pet-room-v2 ${dayPart()}" id="petStage">
-        <div class="pet-room-bg-v2">
-          <div class="room-wall"></div>
-          <div class="room-window"><div class="room-sky"><i class="sky-cloud one"></i><i class="sky-cloud two"></i></div><div class="window-cross"></div></div>
-          <div class="room-shelf"><span>📚</span><span>🌷</span><span>⭐</span></div>
-          <div class="room-floor"></div>
-          <div class="room-rug"></div>
-          <div class="room-bowl">♡</div>
-          <div class="room-plant">🌿</div>
-          ${roomItemLayer()}
+  page.innerHTML=`<div class="v3-page v3-pet-page">
+    <section class="v3-page-hero v3-pet-hero">
+      <div><span class="v3-eyebrow">陪伴空间</span><h1>奶糕的小屋 ♡</h1><p>奶糕会根据时间、照顾和陪伴做出不同反应。</p></div>
+      <div class="v3-pet-hero-badges"><span>🐟 <b>${state.fish}</b></span><span>❤️ <b>${petDisplay(state.pet.health)}%</b></span></div>
+    </section>
+
+    <div class="v3-pet-layout">
+      <section class="v3-pet-stage-wrap">
+        <div class="pet-stage pet-room-v2 v3-pet-stage ${dayPart()}" id="petStage">
+          <div class="pet-room-bg-v2">
+            <div class="room-wall"></div>
+            <div class="room-window"><div class="room-sky"><i class="sky-cloud one"></i><i class="sky-cloud two"></i></div><div class="window-cross"></div></div>
+            <div class="room-shelf"><span>📚</span><span>🌷</span><span>⭐</span></div>
+            <div class="room-floor"></div><div class="room-rug"></div><div class="room-bowl">♡</div><div class="room-plant">🌿</div>
+            ${roomItemLayer()}
+          </div>
+          <div class="v3-room-title"><b>奶糕的房间</b><span>${dayPart()==='night'?'晚安时间':'陪伴进行中'}</span></div>
+          <div class="pet-message pet-message-v2 v3-pet-message" id="petMessage"><span>奶糕说</span>${esc(state.pet.message)}</div>
+          <div class="pet-condition-layer">
+            ${state.pet.hunger<35?'<span class="pet-condition hungry">🍽️</span>':''}
+            ${state.pet.cleanliness<35?'<span class="pet-condition dirty">✦</span>':''}
+            ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
+          </div>
+          <div class="pet-effect-layer" id="petEffects"></div>
+          <div class="pet-scene-overlay" id="petSceneOverlay"></div>
+          <div class="cat-avatar pet-art-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕"><img id="petArt" class="naigao-art pet-naigao-art" data-pet-art="idle" src="${PET_ART.idle||''}" alt="" draggable="false"></div>
+          <div class="pet-prop" id="petProp"></div>
         </div>
-        <div class="pet-message pet-message-v2" id="petMessage"><span>奶糕说</span>${esc(state.pet.message)}</div>
-        <div class="pet-condition-layer">
-          ${state.pet.hunger<35?'<span class="pet-condition hungry">🍽️</span>':''}
-          ${state.pet.cleanliness<35?'<span class="pet-condition dirty">✦</span>':''}
-          ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
+        <div class="v3-action-bar">
+          ${quick.map(x=>`<button data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}
         </div>
-        <div class="pet-effect-layer" id="petEffects"></div>
-        <div class="pet-scene-overlay" id="petSceneOverlay"></div>
-        <div class="cat-avatar pet-art-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕"><img id="petArt" class="naigao-art pet-naigao-art" data-pet-art="idle" src="${PET_ART.idle||''}" alt="" draggable="false"></div>
-        <div class="pet-prop" id="petProp"></div>
-      </div>
-      <div class="card pet-control-card">
-        <h3>和奶糕互动</h3>
-        <div class="pet-quick-actions">${quick.map(x=>`<button class="pet-quick" data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}</div>
-        <div class="pet-vitals">
-          <div class="pet-vital"><div><span>🍽️ 饱腹</span><b>${petDisplay(state.pet.hunger)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.hunger)}"><i style="width:${petDisplay(state.pet.hunger)}%"></i></div></div>
-          <div class="pet-vital"><div><span>🫧 清洁</span><b>${petDisplay(state.pet.cleanliness)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.cleanliness)}"><i style="width:${petDisplay(state.pet.cleanliness)}%"></i></div></div>
-          <div class="pet-vital"><div><span>❤️ 健康</span><b>${petDisplay(state.pet.health)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${petDisplay(state.pet.health)}%"></i></div></div>
-          <div class="pet-vital"><div><span>😊 心情</span><b>${petDisplay(state.pet.mood)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${petDisplay(state.pet.mood)}%"></i></div></div>
-        </div>
-        <div class="sound-tip">🔊 点「听猫叫」可立即测试声音。若 iPhone 处于系统静音，请关闭静音并调高媒体音量。</div>
-        <h3>我的宠物用品</h3>
-        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
-        <div class="audio-credit">猫叫：Dan Crosby / Wikimedia Commons（CC BY-SA 3.0） · 呼噜：Mysid / Public Domain</div>
-      </div>
+      </section>
+
+      <aside class="v3-pet-side">
+        <section class="v3-panel v3-vitals-card">
+          <div class="v3-section-head"><div><span class="v3-eyebrow">今日状态</span><h2>奶糕怎么样？</h2></div></div>
+          <div class="v3-vitals-list">
+            ${[['❤️','健康',state.pet.health],['🍽️','饱腹',state.pet.hunger],['🫧','清洁',state.pet.cleanliness],['😊','心情',state.pet.mood]].map(x=>`
+            <div class="v3-vital-row"><div><span>${x[0]} ${x[1]}</span><b>${petDisplay(x[2])}%</b></div><div class="v3-vital-track"><i style="width:${petDisplay(x[2])}%"></i></div></div>`).join('')}
+          </div>
+        </section>
+
+        <section class="v3-panel v3-inventory-card">
+          <div class="v3-section-head"><div><span class="v3-eyebrow">生活用品</span><h2>我的宠物用品</h2></div><button data-go="shop">去商城 ›</button></div>
+          <div class="pet-inventory v3-inventory-list">
+            ${own.length?own.map(i=>`<div class="v3-inventory-item"><span>${i.emoji}</span><div><b>${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城看看吧。</div>'}
+          </div>
+        </section>
+      </aside>
     </div>
   </div>`;
 
+  bindGo();
   const pending=sessionStorage.getItem('miaomiao-pet-action');sessionStorage.removeItem('miaomiao-pet-action');
   page.querySelectorAll('[data-act]').forEach(b=>{
     if(b.dataset.act==='meow')b.onpointerdown=e=>{e.preventDefault();petAction('meow')};
