@@ -102,3 +102,36 @@ body{background:linear-gradient(180deg,#fff9f9,#fff5f6)!important;color:var(--v3
   .v3-avatar[data-zone="bed"]{--pet-x:66px;--pet-y:10px}
   .v3-home-cat{width:100px!important;height:100px!important}
 }
+
+
+/* 3.0 continuous action choreography */
+.v3-avatar[data-v3-state="walk"] .v3-main-sprite{animation:v3SpriteWalk .34s ease-in-out infinite alternate}
+.v3-avatar[data-v3-state="curious"] .v3-main-sprite{animation:v3SpriteCurious 1.05s ease-in-out infinite alternate}
+.v3-avatar[data-v3-state="eat"] .v3-main-sprite{animation:v3SpriteEat .46s ease-in-out infinite}
+.v3-avatar[data-v3-state="bath"] .v3-main-sprite{animation:v3SpriteBath .8s ease-in-out infinite alternate}
+.v3-avatar[data-v3-state="brush"] .v3-main-sprite{animation:v3SpriteBrush 1s ease-in-out infinite alternate}
+.v3-avatar[data-v3-state="box"] .v3-main-sprite{animation:v3SpritePeek .9s ease-in-out infinite alternate}
+.v3-avatar[data-v3-state="happy"] .v3-main-sprite{animation:v3SpriteHappy .9s ease-in-out infinite alternate}
+.v3-avatar[data-v3-state="cuddle"] .v3-main-sprite{animation:v3SpriteCuddle .55s ease-in-out infinite alternate}
+@keyframes v3SpriteWalk{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(-5px) rotate(1deg)}}
+@keyframes v3SpriteCurious{from{transform:rotate(-1.2deg) translateY(0)}to{transform:rotate(1.2deg) translateY(-2px)}}
+@keyframes v3SpriteEat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(4px) scale(.985)}}
+@keyframes v3SpriteBath{from{transform:scale(.99) rotate(-1deg)}to{transform:scale(1.015) rotate(1deg)}}
+@keyframes v3SpriteBrush{from{transform:translateX(-2px) rotate(-1deg)}to{transform:translateX(2px) rotate(1deg)}}
+@keyframes v3SpritePeek{from{transform:translateY(1px) scale(.99)}to{transform:translateY(-4px) scale(1.015)}}
+@keyframes v3SpriteHappy{from{transform:translateY(0) scale(1)}to{transform:translateY(-4px) scale(1.02)}}
+@keyframes v3SpriteCuddle{from{transform:rotate(-1deg)}to{transform:rotate(1deg)}}
+
+.v3-pet-stage.scene-feed.phase-sniff .v3-main-sprite{animation:v3Sniff .42s ease-in-out infinite}
+.v3-pet-stage.scene-feed.phase-lick .v3-main-sprite{animation:v3Lick .55s ease-in-out 2}
+.v3-pet-stage.scene-bath.phase-shake .v3-main-sprite{animation:v3Shake .22s linear 6!important}
+.v3-pet-stage.scene-box.phase-jump .v3-main-sprite{animation:v3JumpBox .62s cubic-bezier(.2,.8,.25,1) both}
+@keyframes v3Sniff{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(5px) rotate(1deg)}}
+@keyframes v3Lick{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px) scale(1.015)}}
+@keyframes v3Shake{0%{transform:translateX(-6px) rotate(-2deg)}50%{transform:translateX(6px) rotate(2deg)}100%{transform:translateX(-6px) rotate(-2deg)}}
+@keyframes v3JumpBox{0%{transform:translateY(0) scale(1)}45%{transform:translateY(-34px) scale(.97)}100%{transform:translateY(8px) scale(.95)}}
+
+.v3-pet-stage[class*="scene-"] .v3-room-title:after{
+  content:"互动中";display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;
+  background:#fff0f4;color:#d75c86;font-size:7px;font-weight:900;vertical-align:1px
+}
