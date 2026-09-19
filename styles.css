@@ -564,3 +564,37 @@ html,body{background:var(--bg)}
   .pet-story-scene{inset:5px;border-radius:18px}.pet-story-label{bottom:7px;padding:4px 9px;font-size:9px}
   .home-naigao-art{transform:scale(1.05)}
 }
+
+
+/* v24 framing hotfix: show the whole Naigao, never crop into a face close-up */
+.naigao-art{object-fit:contain!important;object-position:center bottom!important}
+.home-cat-wrap{overflow:visible!important;box-shadow:none!important;border-radius:0!important;padding:3px 6px 0}
+.home-naigao-art{object-fit:contain!important;object-position:center bottom!important;transform:scale(.84)!important;filter:drop-shadow(0 6px 8px rgba(120,76,55,.14))}
+.home-pet-scene{overflow:hidden!important}
+.home-pet-scene .home-scene-window{opacity:.72!important}.home-pet-scene .home-scene-rug{opacity:.62!important}
+
+.pet-room-v2 .pet-art-avatar{width:min(42%,250px)!important;height:78%!important;max-height:230px!important;margin-top:22px!important;overflow:visible!important}
+.pet-naigao-art{object-fit:contain!important;object-position:center bottom!important;border-radius:0!important;
+  -webkit-mask-image:none!important;mask-image:none!important;transform:scale(.88)!important;
+  filter:drop-shadow(0 10px 10px rgba(126,79,50,.16));}
+.scene-bath .pet-naigao-art{border-radius:0!important;-webkit-mask-image:none!important;mask-image:none!important}
+
+.pet-story-scene{inset:10px 14px 12px!important;padding:8px 16px 22px!important;background:linear-gradient(145deg,#fff8f4,#ffe9e4)!important}
+.pet-story-art{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center bottom!important;transform:scale(.88)!important;filter:drop-shadow(0 8px 10px rgba(120,75,55,.12))}
+.scene-feed.phase-eat .pet-story-art,.scene-feed.phase-lick .pet-story-art,
+.scene-brush.phase-stroke .pet-story-art,.scene-brush.phase-lean .pet-story-art,
+.scene-box.phase-hide .pet-story-art,.scene-box.phase-peek .pet-story-art{animation:none!important;transform:scale(.88)!important}
+.pet-story-label{bottom:7px!important}
+
+.pet-message-v2{z-index:12!important;max-width:205px!important}
+.pet-condition-layer{z-index:13!important}
+.pet-room-v2 .room-plant{z-index:2}
+.pet-room-v2 .room-bowl{z-index:2}
+
+@media(max-height:390px){
+  .home-naigao-art{transform:scale(.79)!important}
+  .pet-room-v2 .pet-art-avatar{width:min(38%,205px)!important;height:73%!important;max-height:174px!important;margin-top:18px!important}
+  .pet-naigao-art{transform:scale(.82)!important}
+  .pet-story-scene{inset:5px 10px 7px!important;padding:4px 11px 17px!important}
+  .pet-story-art{transform:scale(.82)!important}
+}
