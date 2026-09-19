@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fffaf5">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="喵喵打卡">
+<meta name="format-detection" content="telephone=no">
+<title>奶糕 3.0 预览版 · 学习陪伴工作台</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/styles.css">
+<link rel="stylesheet" href="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/styles-v3.css">
+</head>
+<body>
+<div id="orientationFrame" class="orientation-frame">
+<div class="app-shell">
+  <aside class="sidebar"><nav id="nav"></nav></aside>
+  <main class="workspace">
+    <header class="hero" aria-label="喵喵的打卡工作台">
+      <div class="hero-copy"><h1>奶糕 3.0 · 预览</h1><p>真机验收版 · 不影响正式工作台 ♡</p></div>
+      <div class="pig-family" aria-hidden="true"><span>🐱</span><span>🐾</span><span>💗</span><span>🐱</span></div>
+      <div class="cloud hero-cloud-1"></div><div class="cloud hero-cloud-2"></div><div class="hill hero-hill-1"></div><div class="hill hero-hill-2"></div>
+    </header>
+    <section id="page" class="page" aria-live="polite"></section>
+  </main>
+  <button id="rotateSide" class="rotate-side" aria-label="切换横屏方向" title="切换横屏方向">↻</button>
+  <div id="landscapeHint" class="landscape-hint">已自动适配横屏 · 方向相反可点 ↻</div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="modalRoot"></div>
+</div>
+<input id="importInput" type="file" accept="application/json" hidden>
+<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/pet-assets.js"></script>
+<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/pet-v3-sprite.js"></script>
+<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/pet-v3-room.js"></script>
+<script>window.MIAOMIAO_PREVIEW_MODE=true;</script>
+<script src="https://raw.githubusercontent.com/yukih1134/yukih1134.github.io/miaomiao-3.0/app.js"></script>
+</body>
+</html>
