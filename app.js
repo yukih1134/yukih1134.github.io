@@ -316,6 +316,47 @@ const V3_SPRITE=window.MIAOMIAO_V3_SPRITE||'';
 const V3_META=window.MIAOMIAO_V3_SPRITE_META||{states:{idle:[0,0]}};
 const V3_ROOM=window.MIAOMIAO_V3_ROOM||'';
 if(V3_SPRITE)document.documentElement.style.setProperty('--v3-sprite',`url("${V3_SPRITE}")`);
+function prepareV3TransparentSprite(){
+  if(!V3_SPRITE||typeof document==='undefined')return;
+  const img=new Image();
+  img.onload=()=>{
+    try{
+      const c=document.createElement('canvas'),w=img.naturalWidth,h=img.naturalHeight;
+      if(!w||!h)return;
+      c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0);
+      const im=x.getImageData(0,0,w,h),d=im.data,cols=4,rows=3,cw=Math.floor(w/cols),ch=Math.floor(h/rows);
+      const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+      for(let cy=0;cy<rows;cy++)for(let cx=0;cx<cols;cx++){
+        const x0=cx*cw,y0=cy*ch,x1=(cx===cols-1?w:(cx+1)*cw)-1,y1=(cy===rows-1?h:(cy+1)*ch)-1;
+        const palette=[];
+        const sample=(px,py)=>{const i=(py*w+px)*4;palette.push([d[i],d[i+1],d[i+2]])};
+        const step=Math.max(3,Math.floor(Math.min(cw,ch)/14));
+        for(let px=x0;px<=x1;px+=step){sample(px,y0+1);sample(px,y1-1)}
+        for(let py=y0;py<=y1;py+=step){sample(x0+1,py);sample(x1-1,py)}
+        const ww=x1-x0+1,hh=y1-y0+1,seen=new Uint8Array(ww*hh),q=[];
+        const push=(px,py)=>{const lx=px-x0,ly=py-y0,si=ly*ww+lx;if(lx<0||ly<0||lx>=ww||ly>=hh||seen[si])return;seen[si]=1;q.push([px,py])};
+        for(let px=x0;px<=x1;px++){push(px,y0);push(px,y1)}
+        for(let py=y0;py<=y1;py++){push(x0,py);push(x1,py)}
+        for(let qi=0;qi<q.length;qi++){
+          const [px,py]=q[qi],i=(py*w+px)*4,r=d[i],g=d[i+1],b=d[i+2];
+          let md=999;for(const p of palette){const dd=dist([r,g,b],p);if(dd<md)md=dd}
+          const bright=(r+g+b)/3;
+          if(md>48||bright<118)continue;
+          const alpha=md<28?0:Math.max(0,Math.min(255,Math.round((md-28)/20*255)));
+          d[i+3]=Math.min(d[i+3],alpha);
+          push(px+1,py);push(px-1,py);push(px,py+1);push(px,py-1);
+        }
+      }
+      x.putImageData(im,0,0);
+      const clean=c.toDataURL('image/png');
+      document.documentElement.style.setProperty('--v3-sprite',`url("${clean}")`);
+      document.documentElement.classList.add('v3-sprite-ready');
+    }catch(e){document.documentElement.classList.add('v3-sprite-fallback')}
+  };
+  img.onerror=()=>document.documentElement.classList.add('v3-sprite-fallback');
+  img.src=V3_SPRITE;
+}
+prepareV3TransparentSprite();
 if(V3_ROOM)document.documentElement.style.setProperty('--v3-room',`url("${V3_ROOM}")`);
 function v3Sprite(state='idle',extra='',id=''){
   const pos=V3_META.states?.[state]||V3_META.states?.idle||[0,0];
@@ -999,7 +1040,17 @@ function renderPet(){
     <div class="v3-pet-layout">
       <section class="v3-pet-stage-wrap">
         <div class="pet-stage pet-room-v2 v3-pet-stage ${dayPart()}" id="petStage">
-          <div class="v3-pet-room-bg">${roomItemLayer()}</div>
+          <div class="v3-pet-room-bg">
+            <div class="v3-room-light"></div>
+            <div class="v3-room-window"><span class="v3-room-sky"></span><i></i><i></i></div>
+            <div class="v3-room-shelf"><span>📚</span><span>🌷</span><span>⭐</span></div>
+            <div class="v3-room-cabinet"><i></i><i></i></div>
+            <div class="v3-room-cat-tree"><span></span><b></b><i></i></div>
+            <div class="v3-room-rug"></div>
+            <div class="v3-room-bowl">♡</div>
+            <div class="v3-room-plant">🌿</div>
+            ${roomItemLayer()}
+          </div>
           <div class="v3-room-title"><b>奶糕的房间</b><span>${dayPart()==='night'?'晚安时间':'陪伴进行中'}</span></div>
           <div class="pet-message pet-message-v2 v3-pet-message" id="petMessage"><span>奶糕说</span>${esc(state.pet.message)}</div>
           <div class="pet-condition-layer">
