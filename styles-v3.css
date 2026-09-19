@@ -135,3 +135,29 @@ body{background:linear-gradient(180deg,#fff9f9,#fff5f6)!important;color:var(--v3
   content:"互动中";display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;
   background:#fff0f4;color:#d75c86;font-size:7px;font-weight:900;vertical-align:1px
 }
+
+
+/* 3.0 direct-touch interaction layer */
+.v3-avatar{touch-action:none;cursor:grab}
+.v3-avatar.being-petted{cursor:grabbing;filter:brightness(1.03)}
+.v3-touch-fx{position:absolute;z-index:20;transform:translate(-50%,-50%);font-size:20px;color:#ef6f9b;pointer-events:none;animation:v3TouchPop .65s ease-out forwards;text-shadow:0 2px 8px rgba(239,111,155,.18)}
+@keyframes v3TouchPop{0%{opacity:0;transform:translate(-50%,-30%) scale(.65)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-115%) scale(1.2)}}
+
+.v3-pet-stage.v3-interactive{touch-action:none}
+.v3-pet-stage.v3-interactive .v3-room-title{opacity:.38}
+.v3-interaction-hud{
+  position:absolute;left:50%;top:10px;z-index:25;transform:translateX(-50%);width:min(68%,330px);
+  background:rgba(255,252,251,.93);backdrop-filter:blur(10px);border:1px solid #f1dce3;border-radius:17px;
+  box-shadow:0 8px 22px rgba(116,71,83,.10);padding:8px 11px;text-align:center;pointer-events:none
+}
+.v3-interaction-hud strong{display:block;font-size:11px;color:#714a57}
+.v3-interaction-hud>span{display:block;margin-top:2px;font-size:8px;color:#a6828d}
+.v3-interaction-meter{height:7px;margin-top:6px;background:#f4e8ec;border-radius:999px;overflow:visible;position:relative}
+.v3-interaction-meter i{display:block;width:0;height:100%;border-radius:999px;background:linear-gradient(90deg,#f47ca5,#f3b36b);transition:width .16s ease}
+.v3-interaction-meter b{position:absolute;right:0;top:-15px;font-size:7px;color:#b27487}
+.v3-drag-tool{position:absolute;z-index:30;left:65%;top:40%;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 5px 5px rgba(80,50,46,.17));will-change:left,top}
+.v3-brush-tool{font-size:36px}.v3-wand-tool{font-size:40px}
+.v3-brush-mode .v3-main-sprite{animation:v3BrushReady .8s ease-in-out infinite alternate}
+.v3-wand-mode .v3-main-sprite{animation:v3WandFocus .55s ease-in-out infinite alternate}
+@keyframes v3BrushReady{from{transform:translateY(0)}to{transform:translateY(-2px) rotate(1deg)}}
+@keyframes v3WandFocus{from{transform:rotate(-1deg)}to{transform:rotate(1deg) translateY(-2px)}}
