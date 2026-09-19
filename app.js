@@ -1291,7 +1291,7 @@ function startVitalsHeartbeat(){
 }
 primeCatMedia();renderNav();home();startVitalsHeartbeat();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
-if('serviceWorker'in navigator)addEventListener('load',async()=>{
+if(!window.MIAOMIAO_PREVIEW_MODE&&'serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
     reg.update().catch(()=>{});
