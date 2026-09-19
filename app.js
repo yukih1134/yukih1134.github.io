@@ -303,24 +303,36 @@ const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{le
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const PET_ART=window.MIAOMIAO_PET_ART||{};
-function petArtImg(name='idle',extra=''){
-  const src=PET_ART[name]||PET_ART.idle||'';
-  return src?`<img class="naigao-art ${extra}" data-pet-art="${name}" src="${src}" alt="" draggable="false">`:'';
+const V3_SPRITE=window.MIAOMIAO_V3_SPRITE||'';
+const V3_META=window.MIAOMIAO_V3_SPRITE_META||{states:{idle:[0,0]}};
+const V3_ROOM=window.MIAOMIAO_V3_ROOM||'';
+if(V3_SPRITE)document.documentElement.style.setProperty('--v3-sprite',`url("${V3_SPRITE}")`);
+if(V3_ROOM)document.documentElement.style.setProperty('--v3-room',`url("${V3_ROOM}")`);
+function v3Sprite(state='idle',extra='',id=''){
+  const pos=V3_META.states?.[state]||V3_META.states?.idle||[0,0];
+  return `<div ${id?`id="${id}"`:''} class="v3-pet-sprite ${extra}" data-v3-state="${state}" style="--sx:${pos[0]};--sy:${pos[1]}"></div>`;
 }
-function petArtForVisual(cls=''){
-  if(/eating-|feed-lick/.test(cls))return 'feed';
-  if(/play-box|box-peek/.test(cls))return 'box';
+function visualToV3State(cls=''){
+  if(/eating-|feed-|lick/.test(cls))return 'eat';
+  if(/care-bath|bath-/.test(cls))return 'bath';
   if(/care-brush|purring-brush/.test(cls))return 'brush';
+  if(/play-box|box-/.test(cls))return 'box';
+  if(/sleep|med-rest/.test(cls))return 'sleep';
+  if(/sick/.test(cls))return 'sick';
+  if(/attention|idle-look|meowing|hungry/.test(cls))return 'curious';
+  if(/purring|cuddle/.test(cls))return 'cuddle';
+  if(/happy/.test(cls))return 'happy';
+  if(/walk|play-/.test(cls))return 'walk';
   return 'idle';
 }
-function updatePetArt(cls='idle'){
-  const img=$('#petArt');if(!img)return;
-  const name=petArtForVisual(cls),src=PET_ART[name]||PET_ART.idle;
-  if(src&&img.dataset.petArt!==name){img.src=src;img.dataset.petArt=name}
+function setV3SpriteState(cls='idle'){
+  const el=$('#petV3Sprite');if(!el)return;
+  const state=visualToV3State(cls),pos=V3_META.states?.[state]||V3_META.states?.idle||[0,0];
+  el.dataset.v3State=state;el.style.setProperty('--sx',pos[0]);el.style.setProperty('--sy',pos[1]);
 }
-function sceneArt(name,label=''){
-  return `<div class="pet-story-scene">${petArtImg(name,'pet-story-art')}<div class="pet-story-label">${esc(label)}</div></div>`;
-}
+function petArtImg(name='idle',extra=''){return v3Sprite(name==='feed'?'eat':name,extra)}
+function updatePetArt(cls='idle'){setV3SpriteState(cls)}
+function sceneArt(name,label=''){return `<div class="pet-story-scene v3-story-scene">${v3Sprite(name==='feed'?'eat':name,'v3-story-sprite')}<div class="pet-story-label">${esc(label)}</div></div>`}
 function taskRewardIcons(rewardEligible=true){
   if(!rewardEligible)return '<span class="task-reward-icons"><span class="task-reward-chip" title="自定义任务仅记录完成">记录</span></span>';
   return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加1">
@@ -513,7 +525,7 @@ function home(){
     <section class="v3-panel v3-pet-preview">
       <div class="v3-pet-room-mini">
         <div class="v3-mini-window"></div><div class="v3-mini-rug"></div>
-        <div class="v3-mini-cat">${petArtImg('idle','v3-home-cat')}</div>
+        <div class="v3-mini-cat">${v3Sprite('idle','v3-home-cat')}</div>
         <div class="v3-speech">主人～<br>今天也一起加油吧♡</div>
       </div>
       <div class="v3-pet-preview-copy">
@@ -720,8 +732,8 @@ function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
   const a=$('#catAvatar'),m=$('#petMessage'),f=$('#petEffects'),p=$('#petProp');
   if(!a)return;
-  a.className='cat-avatar pet-art-avatar '+cls+' '+petVisualConditionClasses();
-  updatePetArt(cls);
+  a.className='cat-avatar pet-art-avatar v3-avatar '+cls+' '+petVisualConditionClasses();
+  setV3SpriteState(cls);
   if(m)m.innerHTML='<span>奶糕说</span>'+esc(text);if(f)f.innerHTML=fx;if(p)p.innerHTML=prop;
   state.pet.message=text;save();
 }
@@ -812,13 +824,7 @@ function renderPet(){
     <div class="v3-pet-layout">
       <section class="v3-pet-stage-wrap">
         <div class="pet-stage pet-room-v2 v3-pet-stage ${dayPart()}" id="petStage">
-          <div class="pet-room-bg-v2">
-            <div class="room-wall"></div>
-            <div class="room-window"><div class="room-sky"><i class="sky-cloud one"></i><i class="sky-cloud two"></i></div><div class="window-cross"></div></div>
-            <div class="room-shelf"><span>📚</span><span>🌷</span><span>⭐</span></div>
-            <div class="room-floor"></div><div class="room-rug"></div><div class="room-bowl">♡</div><div class="room-plant">🌿</div>
-            ${roomItemLayer()}
-          </div>
+          <div class="v3-pet-room-bg">${roomItemLayer()}</div>
           <div class="v3-room-title"><b>奶糕的房间</b><span>${dayPart()==='night'?'晚安时间':'陪伴进行中'}</span></div>
           <div class="pet-message pet-message-v2 v3-pet-message" id="petMessage"><span>奶糕说</span>${esc(state.pet.message)}</div>
           <div class="pet-condition-layer">
@@ -828,7 +834,7 @@ function renderPet(){
           </div>
           <div class="pet-effect-layer" id="petEffects"></div>
           <div class="pet-scene-overlay" id="petSceneOverlay"></div>
-          <div class="cat-avatar pet-art-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕"><img id="petArt" class="naigao-art pet-naigao-art" data-pet-art="idle" src="${PET_ART.idle||''}" alt="" draggable="false"></div>
+          <div class="cat-avatar pet-art-avatar v3-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${v3Sprite('idle','v3-main-sprite','petV3Sprite')}</div>
           <div class="pet-prop" id="petProp"></div>
         </div>
         <div class="v3-action-bar">
