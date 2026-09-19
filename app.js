@@ -717,7 +717,7 @@ function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
   const a=$('#catAvatar'),m=$('#petMessage'),f=$('#petEffects'),p=$('#petProp');
   if(!a)return;
-  a.className='cat-avatar pet-art-avatar v3-avatar '+cls+' '+petVisualConditionClasses();
+  a.className='cat-avatar v3-avatar '+cls+' '+petVisualConditionClasses();
   setV3SpriteState(cls);
   if(m)m.innerHTML='<span>奶糕说</span>'+esc(text);if(f)f.innerHTML=fx;if(p)p.innerHTML=prop;
   state.pet.message=text;save();
@@ -985,7 +985,7 @@ function renderPet(){
           </div>
           <div class="pet-effect-layer" id="petEffects"></div>
           <div class="pet-scene-overlay" id="petSceneOverlay"></div>
-          <div class="cat-avatar pet-art-avatar v3-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${v3Sprite('idle','v3-main-sprite','petV3Sprite')}</div>
+          <div class="cat-avatar v3-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${v3Sprite('idle','v3-main-sprite','petV3Sprite')}</div>
           <div class="pet-prop" id="petProp"></div>
         </div>
         <div class="v3-action-bar">
