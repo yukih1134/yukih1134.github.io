@@ -314,33 +314,59 @@ function taskRewardIcons(rewardEligible=true){
   </span>`
 }
 function catSvg(kind='large'){
-  return `<svg class="cat-svg ${kind}" viewBox="0 0 260 200" aria-hidden="true">
-    <g class="cat-tail-g"><path class="cat-tail-shape" d="M184 137 C238 126 246 86 219 73 C203 65 188 77 198 91 C207 104 226 93 224 78" fill="none" stroke="#d77a32" stroke-width="22" stroke-linecap="round"/></g>
-    <g class="cat-body-g">
-      <ellipse cx="142" cy="139" rx="70" ry="47" fill="#e98a3a"/>
-      <path d="M95 137 C106 101 128 92 156 98 C181 103 198 124 199 151 C174 174 116 177 85 158 Z" fill="#ec9345"/>
-      <path d="M111 109 C118 128 119 151 113 170" fill="none" stroke="#c96d2c" stroke-width="9" stroke-linecap="round"/>
-      <path d="M144 102 C148 120 150 139 147 158" fill="none" stroke="#c96d2c" stroke-width="8" stroke-linecap="round"/>
-      <ellipse cx="115" cy="169" rx="24" ry="10" fill="#f7cda5"/>
-      <ellipse cx="171" cy="169" rx="25" ry="10" fill="#f7cda5"/>
-      <path class="cat-front-paw" d="M111 136 C101 148 99 164 106 174" fill="none" stroke="#e98a3a" stroke-width="18" stroke-linecap="round"/>
-    </g>
-    <g class="cat-head-g">
-      <path d="M84 65 L92 29 L119 52 Z" fill="#e98a3a" stroke="#b85f25" stroke-width="4"/>
-      <path d="M154 52 L181 29 L186 69 Z" fill="#e98a3a" stroke="#b85f25" stroke-width="4"/>
-      <path d="M94 43 L98 32 L109 47 Z" fill="#f4a5a5"/>
-      <path d="M166 47 L178 33 L179 51 Z" fill="#f4a5a5"/>
-      <ellipse cx="136" cy="82" rx="58" ry="48" fill="#ee9649" stroke="#b85f25" stroke-width="4"/>
-      <path d="M104 55 L119 64 M100 69 L118 73 M168 56 L153 65 M174 70 L155 74" stroke="#b85f25" stroke-width="5" stroke-linecap="round"/>
-      <g class="cat-eyes">
-        <ellipse cx="116" cy="80" rx="7" ry="10" fill="#24354f"/><ellipse cx="156" cy="80" rx="7" ry="10" fill="#24354f"/>
-        <circle cx="118" cy="77" r="2.2" fill="#fff"/><circle cx="158" cy="77" r="2.2" fill="#fff"/>
+  const uid='ng-'+Math.random().toString(36).slice(2,8);
+  return `<svg class="cat-svg ${kind}" viewBox="0 0 280 220" aria-hidden="true">
+    <defs>
+      <linearGradient id="${uid}-fur" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc278"/><stop offset=".52" stop-color="#ee9447"/><stop offset="1" stop-color="#cf6d2c"/></linearGradient>
+      <linearGradient id="${uid}-cream" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#fffaf4"/><stop offset="1" stop-color="#f7dcc6"/></linearGradient>
+      <radialGradient id="${uid}-eye" cx=".35" cy=".25" r=".75"><stop offset="0" stop-color="#ffd78d"/><stop offset=".5" stop-color="#9b5a2a"/><stop offset="1" stop-color="#2e211d"/></radialGradient>
+      <linearGradient id="${uid}-collar" x1="0" x2="1"><stop offset="0" stop-color="#f7a7bb"/><stop offset=".5" stop-color="#ef789c"/><stop offset="1" stop-color="#d95f87"/></linearGradient>
+      <radialGradient id="${uid}-bell" cx=".35" cy=".25" r=".8"><stop offset="0" stop-color="#fff2a4"/><stop offset=".45" stop-color="#f4c85b"/><stop offset="1" stop-color="#b88421"/></radialGradient>
+      <filter id="${uid}-shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#9b5d36" flood-opacity=".20"/></filter>
+      <filter id="${uid}-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>
+    </defs>
+    <ellipse class="cat-ground-shadow" cx="143" cy="195" rx="78" ry="13" fill="#c9927a" opacity=".16" filter="url(#${uid}-soft)"/>
+    <g filter="url(#${uid}-shadow)">
+      <g class="cat-tail-g">
+        <path class="cat-tail-shape" d="M195 153 C249 150 264 115 241 94 C226 80 204 88 208 107 C211 123 235 122 240 105" fill="none" stroke="#d97a32" stroke-width="27" stroke-linecap="round"/>
+        <path d="M206 148 C236 141 251 124 249 110" fill="none" stroke="#f1a257" stroke-width="7" stroke-linecap="round" opacity=".75"/>
       </g>
-      <g class="cat-eyes-closed"><path d="M108 82 Q116 88 124 82 M148 82 Q156 88 164 82" fill="none" stroke="#24354f" stroke-width="4" stroke-linecap="round"/></g>
-      <path d="M131 93 Q136 98 141 93 Q136 88 131 93" fill="#a65b52"/>
-      <path d="M136 98 Q132 106 124 104 M136 98 Q140 106 148 104" fill="none" stroke="#6b4a3d" stroke-width="3" stroke-linecap="round"/>
-      <path d="M103 97 L72 92 M103 103 L69 104 M169 97 L201 91 M169 103 L204 105" stroke="#6b4a3d" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M105 111 Q136 132 168 111 Q164 137 136 141 Q109 136 105 111" fill="#f9dcc2" opacity=".75"/>
+      <g class="cat-body-g">
+        <ellipse cx="145" cy="150" rx="76" ry="52" fill="url(#${uid}-fur)"/>
+        <ellipse cx="145" cy="149" rx="52" ry="43" fill="url(#${uid}-cream)" opacity=".98"/>
+        <path d="M93 141 C103 112 126 101 155 104 C184 108 205 132 205 159 C180 185 112 185 80 165 Z" fill="url(#${uid}-fur)"/>
+        <path d="M125 119 C132 135 135 158 130 180" fill="none" stroke="#c76a2f" stroke-width="8" stroke-linecap="round" opacity=".72"/>
+        <path d="M164 110 C170 132 171 153 168 174" fill="none" stroke="#c76a2f" stroke-width="7" stroke-linecap="round" opacity=".7"/>
+        <ellipse cx="110" cy="183" rx="27" ry="13" fill="url(#${uid}-cream)"/>
+        <ellipse cx="178" cy="183" rx="27" ry="13" fill="url(#${uid}-cream)"/>
+        <ellipse cx="105" cy="181" rx="7" ry="4" fill="#f5a3a8" opacity=".85"/><ellipse cx="116" cy="183" rx="6" ry="4" fill="#f5a3a8" opacity=".85"/>
+        <ellipse cx="173" cy="183" rx="6" ry="4" fill="#f5a3a8" opacity=".85"/><ellipse cx="184" cy="181" rx="7" ry="4" fill="#f5a3a8" opacity=".85"/>
+        <path class="cat-front-paw" d="M112 145 C100 158 99 174 107 184" fill="none" stroke="#f0a052" stroke-width="21" stroke-linecap="round"/>
+        <path d="M111 176 C108 180 109 184 112 187" fill="none" stroke="#fff2e6" stroke-width="11" stroke-linecap="round"/>
+      </g>
+      <g class="cat-head-g">
+        <path d="M83 72 L92 28 Q95 19 103 30 L125 55 Z" fill="url(#${uid}-fur)" stroke="#b65d2a" stroke-width="3.5"/>
+        <path d="M162 55 L184 29 Q191 19 193 32 L199 75 Z" fill="url(#${uid}-fur)" stroke="#b65d2a" stroke-width="3.5"/>
+        <path d="M94 48 L100 31 L114 51 Z" fill="#f6a6ad"/><path d="M174 51 L188 31 L190 54 Z" fill="#f6a6ad"/>
+        <ellipse cx="142" cy="92" rx="65" ry="56" fill="url(#${uid}-fur)" stroke="#b65d2a" stroke-width="3.5"/>
+        <path d="M91 102 Q99 128 119 137 Q142 149 167 137 Q187 126 193 100 Q184 119 166 124 Q141 132 117 124 Q99 119 91 102Z" fill="url(#${uid}-cream)"/>
+        <path d="M104 59 L120 68 M99 73 L118 78 M177 60 L160 69 M184 75 L163 79" stroke="#bd632c" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+        <path d="M139 45 L139 62 M126 48 L132 64 M153 48 L147 64" stroke="#bd632c" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+        <g class="cat-eyes">
+          <ellipse cx="119" cy="91" rx="14" ry="18" fill="url(#${uid}-eye)" stroke="#4d3127" stroke-width="2"/>
+          <ellipse cx="165" cy="91" rx="14" ry="18" fill="url(#${uid}-eye)" stroke="#4d3127" stroke-width="2"/>
+          <ellipse cx="115" cy="85" rx="5.5" ry="7" fill="#fff" opacity=".95"/><circle cx="123" cy="99" r="2.5" fill="#fff" opacity=".75"/>
+          <ellipse cx="161" cy="85" rx="5.5" ry="7" fill="#fff" opacity=".95"/><circle cx="169" cy="99" r="2.5" fill="#fff" opacity=".75"/>
+        </g>
+        <g class="cat-eyes-closed"><path d="M108 94 Q119 102 130 94 M154 94 Q165 102 176 94" fill="none" stroke="#4d3127" stroke-width="4.5" stroke-linecap="round"/></g>
+        <path d="M136 108 Q142 114 148 108 Q142 102 136 108" fill="#e67d89"/>
+        <path d="M142 113 Q138 122 128 120 M142 113 Q146 122 156 120" fill="none" stroke="#6c493d" stroke-width="3" stroke-linecap="round"/>
+        <path d="M107 111 L72 104 M108 118 L70 118 M176 111 L211 103 M176 118 L214 118" stroke="#7a5545" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
+        <ellipse cx="104" cy="110" rx="8" ry="4" fill="#f3a3ad" opacity=".35"/><ellipse cx="180" cy="110" rx="8" ry="4" fill="#f3a3ad" opacity=".35"/>
+        <path d="M107 132 Q142 149 178 132" fill="none" stroke="#fff5ec" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+        <path d="M110 137 Q142 151 175 137" fill="none" stroke="url(#${uid}-collar)" stroke-width="8" stroke-linecap="round"/>
+        <g class="cat-bell-g"><circle cx="143" cy="147" r="11" fill="url(#${uid}-bell)" stroke="#a86f18" stroke-width="2"/><path d="M139 145 Q143 140 147 145 Q143 151 139 145" fill="#9b6418"/></g>
+      </g>
     </g>
   </svg>`;
 }
@@ -448,10 +474,15 @@ function home(){
       </div>
     </section>
 
-    <section class="card home-pet-simple">
-      <div class="home-pet-visual">${catSvg('mini')}</div>
+    <section class="card home-pet-simple home-pet-v2">
+      <div class="home-pet-visual home-pet-scene ${dayPart()}">
+        <div class="home-scene-window"><i></i></div>
+        <div class="home-scene-rug"></div>
+        <div class="home-cat-wrap">${catSvg('mini')}</div>
+        <span class="home-heart">♥</span>
+      </div>
       <div class="home-pet-info">
-        <div class="home-pet-title"><div><b>奶糕</b><span>我的橘猫伙伴</span></div><button class="plain-link" data-go="pet">去互动 ›</button></div>
+        <div class="home-pet-title"><div><b>奶糕 <em>♡</em></b><span>今天也在陪你一起努力</span></div><button class="plain-link pet-enter-btn" data-go="pet">去小屋 ›</button></div>
         <div class="home-pet-vitals">
           <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${petDisplay(state.pet.hunger)}</span>
           <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${petDisplay(state.pet.cleanliness)}</span>
@@ -604,7 +635,7 @@ function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
   const a=$('#catAvatar'),m=$('#petMessage'),f=$('#petEffects'),p=$('#petProp');
   if(!a)return;
-  a.className='cat-avatar '+cls;
+  a.className='cat-avatar '+cls+' '+petVisualConditionClasses();
   if(m)m.textContent=text;if(f)f.innerHTML=fx;if(p)p.innerHTML=prop;
   state.pet.message=text;save();
 }
@@ -614,16 +645,62 @@ function finishPetAction(text){
     if($('#catAvatar')){setPetVisual('idle',text||state.pet.message);startPetIdle()}
   },1100)
 }
+function petVisualConditionClasses(){
+  const p=state.pet,cls=[];
+  if(p.health<45)cls.push('pet-sick');
+  if(p.hunger<28)cls.push('pet-hungry');
+  if(p.cleanliness<28)cls.push('pet-dirty');
+  return cls.join(' ');
+}
+function dayPart(){
+  const h=new Date().getHours();
+  if(h<6)return 'night';
+  if(h<11)return 'morning';
+  if(h<17)return 'day';
+  if(h<20)return 'evening';
+  return 'night';
+}
+function roomItemLayer(){
+  const has=id=>(state.inventory[id]||0)>0;
+  return `<div class="room-items">
+    ${has('toy-box')?'<button class="room-object room-box" data-room-item="toy-box" aria-label="纸箱">📦</button>':''}
+    ${has('toy-ball')?'<button class="room-object room-ball" data-room-item="toy-ball" aria-label="小球">●</button>':''}
+    ${has('toy-scratch')?'<button class="room-object room-scratch" data-room-item="toy-scratch" aria-label="猫抓板">▥</button>':''}
+    ${has('med-rest')?'<button class="room-object room-bed" data-room-item="med-rest" aria-label="休息垫">♡</button>':''}
+    ${has('care-brush')?'<button class="room-object room-brush" data-room-item="care-brush" aria-label="梳毛刷">✦</button>':''}
+  </div>`;
+}
+function idleOptionsForPet(){
+  const p=state.pet;
+  if(p.health<45)return [
+    ['idle-sick','奶糕今天没什么精神，安静地趴着休息。'],
+    ['idle-blink','奶糕慢慢眨眼，看起来想多睡一会儿。']
+  ];
+  if(p.hunger<28)return [
+    ['idle-hungry','奶糕走到饭碗旁边，回头望着你。'],
+    ['meowing','奶糕轻轻叫了一声，好像在提醒你开饭啦。'],
+    ['idle-look','奶糕一直盯着饭碗，又看看你。']
+  ];
+  if(p.cleanliness<28)return [
+    ['idle-groom','奶糕低头舔毛，又忍不住挠了挠身上。'],
+    ['idle-itch','奶糕抖了抖毛，感觉有点不舒服。']
+  ];
+  if(p.mood<45)return [
+    ['idle-look','奶糕安静坐着，好像在等你陪它玩。'],
+    ['idle-blink','奶糕慢慢眨眼，轻轻摆着尾巴。']
+  ];
+  return [
+    ['idle-look','奶糕看看窗外，又回头看向你。'],
+    ['idle-blink','奶糕慢慢眨了眨眼。'],
+    ['idle-stretch','奶糕前爪向前，伸了一个懒腰。'],
+    ['idle-groom','奶糕低头舔了舔前爪。']
+  ];
+}
 function startPetIdle(){
   if(cur!=='pet'||petBusy||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const schedule=()=>petDelay(()=>{
     if(petBusy||!$('#catAvatar'))return;
-    const idles=[
-      ['idle-look','奶糕看看窗外，又回头看向你。'],
-      ['idle-blink','奶糕慢慢眨了眨眼。'],
-      ['idle-stretch','奶糕前爪向前，伸了一个懒腰。'],
-      ['idle-groom','奶糕低头舔了舔前爪。']
-    ];
+    const idles=idleOptionsForPet();
     const x=idles[Math.floor(Math.random()*idles.length)];
     setPetVisual(x[0],x[1]);
     petDelay(()=>{if(!petBusy&&$('#catAvatar'))setPetVisual('idle','奶糕安静地待在小屋里。')},1100);
@@ -645,20 +722,29 @@ function renderPet(){
   ];
   page.innerHTML=`<div class="page-panel pet-page">
     <div class="section-hero">
-      <div><h1>🐾 奶糕的小屋</h1><p>完成任务获得小鱼干，换用品后可以和奶糕真实感互动。</p></div>
+      <div><h1>奶糕的小屋 ♡</h1><p>学习、陪伴和照顾会让奶糕每天都有不同反应。</p></div>
       <div class="pet-top-badges"><b>🐟 ${state.fish}</b><b class="pet-health-badge ${petStatusClass(state.pet.health)}">${state.pet.health<45?'🤒 需要护理':'❤️ '+state.pet.health+'%'}</b></div>
     </div>
     <div class="pet-large">
-      <div class="pet-stage" id="petStage">
-        <div class="pet-room-bg"><span class="window">☁️</span><span class="plant">🪴</span><span class="bed">🧺</span></div>
-        <div class="pet-message" id="petMessage">${esc(state.pet.message)}</div>
+      <div class="pet-stage pet-room-v2 ${dayPart()}" id="petStage">
+        <div class="pet-room-bg-v2">
+          <div class="room-wall"></div>
+          <div class="room-window"><div class="room-sky"><i class="sky-cloud one"></i><i class="sky-cloud two"></i></div><div class="window-cross"></div></div>
+          <div class="room-shelf"><span>📚</span><span>🌷</span><span>⭐</span></div>
+          <div class="room-floor"></div>
+          <div class="room-rug"></div>
+          <div class="room-bowl">♡</div>
+          <div class="room-plant">🌿</div>
+          ${roomItemLayer()}
+        </div>
+        <div class="pet-message pet-message-v2" id="petMessage"><span>奶糕说</span>${esc(state.pet.message)}</div>
         <div class="pet-condition-layer">
           ${state.pet.hunger<35?'<span class="pet-condition hungry">🍽️</span>':''}
           ${state.pet.cleanliness<35?'<span class="pet-condition dirty">✦</span>':''}
           ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
         </div>
         <div class="pet-effect-layer" id="petEffects"></div>
-        <div class="cat-avatar idle ${state.pet.health<45?'pet-sick':''}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
+        <div class="cat-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
         <div class="pet-prop" id="petProp"></div>
       </div>
       <div class="card pet-control-card">
@@ -681,6 +767,7 @@ function renderPet(){
   const pending=sessionStorage.getItem('miaomiao-pet-action');sessionStorage.removeItem('miaomiao-pet-action');
   page.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>petAction(b.dataset.act));
   page.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
+  page.querySelectorAll('[data-room-item]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.roomItem));
   if(pending)petDelay(()=>petAction(pending),120);else startPetIdle();
 }
 function petAction(action){
