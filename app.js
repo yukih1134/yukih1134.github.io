@@ -39,27 +39,101 @@ const petReactions={
 'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5,effect:{health:20,mood:5,hunger:-1}}
 };
 const nowMs=()=>Date.now();
+const BACKUP_LATEST='miaomiao-backup-latest-v1';
+const BACKUP_PREV='miaomiao-backup-prev-v1';
+const BACKUP_DAILY_PREFIX='miaomiao-backup-day-';
+const DATA_SCHEMA=2;
 const petDefaults=()=>({
   mood:85,hunger:84,cleanliness:90,health:100,
   message:'等你完成任务，我们一起玩吧！',
   lastUpdated:nowMs(),vitalsVersion:1
 });
-const init=()=>({points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],shopCat:'食物'});
+const init=()=>({schema:DATA_SCHEMA,points:0,fish:0,tasks:structuredClone(defaults),records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],shopCat:'食物'});
 const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
-let state=(()=>{try{return {...init(),...JSON.parse(localStorage.getItem(K)||'{}')}}catch{return init()}})(),cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false;
-const save=()=>localStorage.setItem(K,JSON.stringify(state));
+function parseState(raw){
+  if(!raw)return null;
+  try{
+    const x=JSON.parse(raw);
+    return x&&typeof x==='object'&&!Array.isArray(x)?x:null;
+  }catch{return null}
+}
+function loadStateSafely(){
+  const mainRaw=(()=>{try{return localStorage.getItem(K)}catch{return null}})();
+  const main=parseState(mainRaw);
+  if(main)return {state:{...init(),...main},source:'main',raw:mainRaw};
+  for(const bk of [BACKUP_LATEST,BACKUP_PREV]){
+    const raw=(()=>{try{return localStorage.getItem(bk)}catch{return null}})();
+    const parsed=parseState(raw);
+    if(parsed)return {state:{...init(),...parsed},source:bk,raw};
+  }
+  return {state:init(),source:'new',raw:null};
+}
+const loaded=loadStateSafely();
+let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false;
+let lastSavedRaw=loaded.raw||null;
+function dayKeyForBackup(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function snapshotCurrentRaw(raw=lastSavedRaw){
+  if(!raw)return;
+  try{
+    if(!localStorage.getItem(BACKUP_LATEST))localStorage.setItem(BACKUP_LATEST,raw);
+    const dk=BACKUP_DAILY_PREFIX+dayKeyForBackup();
+    if(!localStorage.getItem(dk))localStorage.setItem(dk,raw);
+  }catch(e){}
+}
+function save(){
+  try{
+    state.schema=DATA_SCHEMA;
+    const next=JSON.stringify(state);
+    const current=localStorage.getItem(K);
+    if(current&&current!==next){
+      const latest=localStorage.getItem(BACKUP_LATEST);
+      if(latest&&latest!==current)localStorage.setItem(BACKUP_PREV,latest);
+      localStorage.setItem(BACKUP_LATEST,current);
+      const dk=BACKUP_DAILY_PREFIX+dayKeyForBackup();
+      if(!localStorage.getItem(dk))localStorage.setItem(dk,current);
+    }
+    localStorage.setItem(K,next);
+    lastSavedRaw=next;
+    return true;
+  }catch(e){return false}
+}
+function availableBackups(){
+  const out=[];
+  try{
+    const keys=[BACKUP_LATEST,BACKUP_PREV];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);if(k&&k.startsWith(BACKUP_DAILY_PREFIX))keys.push(k);
+    }
+    const seen=new Set();
+    for(const k of keys){
+      const raw=localStorage.getItem(k),x=parseState(raw);
+      if(!x||seen.has(raw))continue;seen.add(raw);
+      out.push({key:k,raw,state:x});
+    }
+  }catch(e){}
+  return out;
+}
+function backupSummary(x){
+  const dates=Object.keys(x.records||{}).sort();
+  const inv=Object.values(x.inventory||{}).reduce((a,b)=>a+(Number(b)||0),0);
+  return {points:Number(x.points)||0,fish:Number(x.fish)||0,dates,inventory:inv};
+}
+function restoreBackupByKey(k){
+  try{
+    const raw=localStorage.getItem(k),x=parseState(raw);if(!x)return false;
+    const current=localStorage.getItem(K);if(current)localStorage.setItem(BACKUP_LATEST,current);
+    state={...init(),...x};ensurePetVitals();localStorage.setItem(K,JSON.stringify(state));lastSavedRaw=JSON.stringify(state);return true;
+  }catch{return false}
+}
 function clampPet(v){return Math.max(0,Math.min(100,Math.round(v)))}
 function ensurePetVitals(){
   const p=state.pet&&typeof state.pet==='object'?state.pet:{};
   const legacy=!p.vitalsVersion;
   state.pet={...petDefaults(),...p};
   if(legacy){
-    state.pet.hunger=72;
-    state.pet.cleanliness=78;
-    state.pet.health=96;
+    state.pet.hunger=72;state.pet.cleanliness=78;state.pet.health=96;
     state.pet.mood=Math.min(Number(p.mood)||85,88);
-    state.pet.lastUpdated=nowMs();
-    state.pet.vitalsVersion=1;
+    state.pet.lastUpdated=nowMs();state.pet.vitalsVersion=1;
   }
 }
 function petConditionMessage(){
@@ -92,9 +166,7 @@ function updatePetNeeds(now=nowMs(),persist=true){
     else p.mood=clampPet(p.mood-0.08*step);
     remaining-=step;
   }
-  p.lastUpdated=now;
-  p.message=petConditionMessage();
-  if(persist)save();
+  p.lastUpdated=now;p.message=petConditionMessage();if(persist)save();
 }
 function applyPetEffect(effect={}){
   updatePetNeeds(nowMs(),false);
@@ -103,20 +175,17 @@ function applyPetEffect(effect={}){
   if(effect.clean)p.cleanliness=clampPet(p.cleanliness+effect.clean);
   if(effect.health)p.health=clampPet(p.health+effect.health);
   if(effect.mood)p.mood=clampPet(p.mood+effect.mood);
-  p.lastUpdated=nowMs();
-  save();
+  p.lastUpdated=nowMs();save();
 }
 function petStatusClass(v){return v<25?'critical':v<50?'low':v<75?'mid':'good'}
 ensurePetVitals();
 updatePetNeeds(nowMs(),false);
+snapshotCurrentRaw();
 if(localStorage.getItem(STARTER_FISH_KEY)!=='1'){
   state.fish=(Number(state.fish)||0)+6;
   state.pet.message='奶糕送来6条欢迎小鱼干，今天也一起加油吧！';
-  save();
-  localStorage.setItem(STARTER_FISH_KEY,'1');
-  starterFishGranted=true;
+  save();localStorage.setItem(STARTER_FISH_KEY,'1');starterFishGranted=true;
 }
-save();
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
 const rec=(k,d=new Date())=>{
@@ -587,8 +656,22 @@ function renderRewards(){
     state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});save();toast('已兑换：'+r.title);renderRewards()
   })
 }
-function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成全部任务</p><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
-$('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());state={...init(),...d};save();toast('备份已恢复');render()}catch{toast('备份文件无法读取')}e.target.value=''};
+function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成全部任务</p><button class="secondary-btn" id="recover">数据恢复</button><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#recover').onclick=()=>openRecovery();$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
+$('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());snapshotCurrentRaw(localStorage.getItem(K));state={...init(),...d};ensurePetVitals();save();toast('备份已恢复');render()}catch{toast('备份文件无法读取')}e.target.value=''};
+function openRecovery(){
+  const b=availableBackups();
+  modal(`<h2>数据恢复</h2>
+    <p style="font-size:12px;color:#777">系统会保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
+    <div class="recovery-list">${b.length?b.map((x,i)=>{
+      const s=backupSummary(x.state),label=x.key.startsWith(BACKUP_DAILY_PREFIX)?x.key.slice(BACKUP_DAILY_PREFIX.length):(x.key===BACKUP_LATEST?'最近备份':'上一个备份');
+      return `<div class="recovery-item"><div><b>${label}</b><small>积分 ${s.points} · 🐟 ${s.fish} · 打卡日期 ${s.dates.length}天 · 宠物用品 ${s.inventory}件</small></div><button class="primary-btn" data-restore="${i}">恢复</button></div>`
+    }).join(''):'<div class="empty-note">这台设备目前没有可用的历史快照。</div>'}</div>
+    <div class="modal-actions"><button class="secondary-btn" data-close>关闭</button></div>`);
+  document.querySelectorAll('[data-restore]').forEach(btn=>btn.onclick=()=>{
+    const x=b[+btn.dataset.restore];if(!x)return;
+    if(restoreBackupByKey(x.key)){closeModal();toast('已恢复历史数据');renderNav();render()}
+  });
+}
 function bindGo(){page.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go))}
 function modal(h){$('#modalRoot').innerHTML='<div class="modal-backdrop"><div class="modal">'+h+'</div></div>';document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal)}
 function closeModal(){$('#modalRoot').innerHTML=''}
