@@ -15,11 +15,11 @@ const defaults=[
 ];
 const fixedRewards=[{id:'tv',title:'看电视半小时',emoji:'📺',points:36},{id:'snack',title:'小零食',emoji:'🍪',points:60},{id:'toy',title:'小玩具',emoji:'🎁',points:84}];
 const shop=[
-['food-kibble','食物','猫粮','🥣',5,'feed'],['food-treat','食物','猫条','🐟',3,'feed'],['food-can','食物','主食罐头','🥫',8,'feed'],['food-freeze','食物','冻干','🍗',6,'feed'],
-['toy-wand','玩具','逗猫棒','🪶',7,'play'],['toy-ball','玩具','小球','⚽',5,'play'],['toy-scratch','玩具','猫抓板','🧶',10,'play'],['toy-box','玩具','纸箱','📦',3,'play'],
-['care-brush','洗漱','梳毛刷','🪮',5,'groom'],['care-bath','洗漱','洗护套装','🫧',9,'bath'],['care-towel','洗漱','小毛巾','🧺',4,'groom'],['care-nail','洗漱','指甲护理','✨',7,'groom'],
-['med-kit','医疗','护理包','🧰',8,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',12,'treat'],['med-rest','医疗','休息垫','🛏️',6,'rest']
-].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5]}));
+['food-kibble','食物','猫粮','🥣',8,'feed','consumable'],['food-treat','食物','猫条','🐟',3,'feed','consumable'],['food-can','食物','主食罐头','🥫',8,'feed','consumable'],['food-freeze','食物','冻干','🍗',6,'feed','consumable'],
+['toy-wand','玩具','逗猫棒','🪶',7,'play','durable'],['toy-ball','玩具','小球','⚽',5,'play','durable'],['toy-scratch','玩具','猫抓板','🧶',10,'play','durable'],['toy-box','玩具','纸箱','📦',3,'play','durable'],
+['care-brush','洗漱','梳毛刷','🪮',5,'groom','durable'],['care-bath','洗漱','洗护套装','🫧',9,'bath','consumable'],['care-towel','洗漱','小毛巾','🧺',4,'groom','durable'],['care-nail','洗漱','指甲护理','✨',7,'groom','durable'],
+['med-kit','医疗','护理包','🧰',8,'treat','consumable'],['med-cone','医疗','护理头套','🔶',9,'treat','durable'],['med-check','医疗','体检券','🩺',12,'treat','consumable'],['med-rest','医疗','休息垫','🛏️',6,'rest','durable']
+].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5],type:x[6]}));
 const petReactions={
 'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4,effect:{hunger:34,mood:3}},
 'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5,effect:{hunger:18,mood:5}},
@@ -45,17 +45,18 @@ const BACKUP_DAILY_PREFIX='miaomiao-backup-day-';
 const STARTER_FISH_KEY='miaomiao-starter-fish-v1';
 const EVIDENCE_RESTORE_KEY='miaomiao-evidence-restore-2026-09-18-v1';
 const INVENTORY_RESTORE_KEY='miaomiao-inventory-restore-2026-09-18-v1';
-const DATA_SCHEMA=3;
-const KNOWN_SEP18_IDS=['cn-write','cn-read','math-homework','en-listen','en-raz','sp-badminton'];
+const DATA_SCHEMA=4;
+const DAILY_FISH_CAP=6;
+const PET_OFFLINE_CAP_HOURS=12;
 
 const petDefaults=()=>({
   mood:85,hunger:84,cleanliness:90,health:100,
   message:'等你完成任务，我们一起玩吧！',
-  lastUpdated:nowMs(),vitalsVersion:1
+  lastUpdated:nowMs(),vitalsVersion:2
 });
 const init=()=>({
   schema:DATA_SCHEMA,points:0,fish:0,tasks:structuredClone(defaults),
-  records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],
+  records:{},inventory:{},pet:petDefaults(),customRewards:[],rewardLog:[],economyLog:[],
   shopCat:'食物',migrations:{}
 });
 function isPlainObject(x){return !!x&&typeof x==='object'&&!Array.isArray(x)}
@@ -98,6 +99,7 @@ function normalizeState(input){
   out.pet={...petDefaults(),...(isPlainObject(src.pet)?src.pet:{})};
   out.customRewards=Array.isArray(src.customRewards)?src.customRewards.filter(r=>isPlainObject(r)&&typeof r.title==='string'&&Number(r.points)>=2).map(r=>({...r,points:Math.round(Number(r.points))})):[];
   out.rewardLog=Array.isArray(src.rewardLog)?src.rewardLog.filter(isPlainObject):[];
+  out.economyLog=Array.isArray(src.economyLog)?src.economyLog.filter(isPlainObject).slice(-1000):[];
   out.shopCat=['食物','玩具','洗漱','医疗'].includes(src.shopCat)?src.shopCat:'食物';
   out.migrations=isPlainObject(src.migrations)?{...src.migrations}:{};
   return out;
@@ -114,7 +116,7 @@ function loadStateSafely(){
   return {state:init(),source:'new',raw:null};
 }
 const loaded=loadStateSafely();
-let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),starterFishGranted=false,evidenceRestoreApplied=false,inventoryRestoreApplied=false;
+let state=loaded.state,cur='home',tp=0,timer=null,pauseUntil=0,petBusy=false,petSession=0,petTimers=new Set(),vitalsTimer=null;
 let lastSavedRaw=loaded.raw||null,lastPruneDay='';
 
 function dayKeyForBackup(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -178,7 +180,8 @@ function backupSummary(x){
   const inv=Object.values(n.inventory).reduce((a,b)=>a+(Number(b)||0),0);
   return {points:n.points,fish:n.fish,dates,inventory:inv};
 }
-function clampPet(v){return Math.max(0,Math.min(100,Math.round(Number(v)||0)))}
+function clampPet(v){const n=Number(v);return Math.max(0,Math.min(100,Number.isFinite(n)?Math.round(n*1000)/1000:0))}
+function petDisplay(v){return Math.round(clampPet(v))}
 function ensurePetVitals(){
   const p=isPlainObject(state.pet)?state.pet:{},legacy=!p.vitalsVersion;
   state.pet={...petDefaults(),...p};
@@ -189,8 +192,9 @@ function ensurePetVitals(){
   if(legacy){
     state.pet.hunger=72;state.pet.cleanliness=78;state.pet.health=96;
     state.pet.mood=Math.min(Number(p.mood)||85,88);
-    state.pet.lastUpdated=nowMs();state.pet.vitalsVersion=1;
+    state.pet.lastUpdated=nowMs();
   }
+  state.pet.vitalsVersion=2;
 }
 function petConditionMessage(){
   const p=state.pet;
@@ -205,12 +209,12 @@ function petConditionMessage(){
 }
 function updatePetNeeds(now=nowMs(),persist=true){
   ensurePetVitals();
-  const p=state.pet;
-  let elapsed=Math.max(0,Math.min((now-(Number(p.lastUpdated)||now))/3600000,24*14));
-  if(elapsed<0.02){p.lastUpdated=now;if(persist)save();return}
+  const p=state.pet,last=Number(p.lastUpdated)||now;
+  const elapsed=Math.max(0,Math.min((now-last)/3600000,PET_OFFLINE_CAP_HOURS));
+  if(elapsed<=0)return;
   let remaining=elapsed;
   while(remaining>0){
-    const step=Math.min(1,remaining);
+    const step=Math.min(.25,remaining);
     p.hunger=clampPet(p.hunger-3*step);
     p.cleanliness=clampPet(p.cleanliness-1.35*step);
     const stressed=p.hunger<22||p.cleanliness<20,mildlyStressed=p.hunger<38||p.cleanliness<35;
@@ -245,24 +249,20 @@ function migrateLegacyMigrationFlags(){
     localStorage.removeItem(INVENTORY_RESTORE_KEY);
   }catch(e){}
 }
+function logEconomy(type,details={}){
+  state.economyLog=Array.isArray(state.economyLog)?state.economyLog:[];
+  state.economyLog.push({id:'e-'+nowMs()+'-'+Math.random().toString(36).slice(2,7),at:new Date().toISOString(),type,...details,balanceFish:state.fish,balancePoints:state.points});
+  if(state.economyLog.length>1000)state.economyLog=state.economyLog.slice(-1000);
+}
 function applyKnownMigrations(){
   state.migrations=isPlainObject(state.migrations)?state.migrations:{};
-  if(!state.migrations.sep18Evidence){
-    const d='2026-09-18',r=isPlainObject(state.records[d])?state.records[d]:{};
-    const existing=Array.isArray(r.completed)?r.completed:[],planned=Array.isArray(r.planned)?r.planned:KNOWN_SEP18_IDS;
-    state.records[d]={...r,planned:[...new Set([...planned,...KNOWN_SEP18_IDS])],completed:[...new Set([...existing,...KNOWN_SEP18_IDS])]};
-    state.points=Math.max(state.points,24);state.fish=Math.max(state.fish,17);
-    state.migrations.sep18Evidence=true;evidenceRestoreApplied=true;
+  // v4 deliberately stops manufacturing Sep-18 history or starter fish on new devices.
+  // Existing restored records/balances are preserved exactly as loaded.
+  if(!state.migrations.v4EconomyLedger){
+    logEconomy('legacy-snapshot',{note:'v4 ledger start; pre-v4 balance preserved',deltaFish:0,deltaPoints:0});
+    state.migrations.v4EconomyLedger=true;
   }
-  if(!state.migrations.sep18Inventory){
-    state.inventory['food-treat']=Math.max(Number(state.inventory['food-treat'])||0,1);
-    state.inventory['toy-box']=Math.max(Number(state.inventory['toy-box'])||0,1);
-    state.inventory['care-brush']=Math.max(Number(state.inventory['care-brush'])||0,1);
-    state.migrations.sep18Inventory=true;inventoryRestoreApplied=true;
-  }
-  if(!state.migrations.starterFish){
-    state.fish+=6;state.migrations.starterFish=true;starterFishGranted=true;
-  }
+  state.migrations.starterFish=true;
 }
 function restoreBackupByKey(k){
   try{
@@ -287,6 +287,13 @@ const rec=(k,d=new Date())=>{
     return state.records[k];
   };
   function syncTodayPlan(){const d=new Date(),r=rec(key(d),d);r.planned=core(d).map(t=>t.id);save()}
+function dailyFishEarned(k=key()){
+  const r=state.records[k];
+  if(!r)return 0;
+  if(Number.isFinite(Number(r.fishEarned)))return Math.max(0,Math.min(DAILY_FISH_CAP,Math.floor(Number(r.fishEarned))));
+  const completed=Array.isArray(r.completed)?r.completed:[];
+  return Math.min(DAILY_FISH_CAP,completed.filter(id=>state.tasks.some(t=>t.id===id&&t.builtin)).length);
+}
 const full=d=>{
     const r=state.records[key(d)], ids=Array.isArray(r?.planned)?r.planned:core(d).map(t=>t.id);
     return ids.length>0&&ids.every(id=>(r?.completed||[]).includes(id));
@@ -295,12 +302,13 @@ const weekStart=(d=new Date())=>{let x=new Date(d),n=(x.getDay()+6)%7;x.setDate(
 const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{let d=new Date(s);d.setDate(s.getDate()+i);return d})};
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function taskRewardIcons(){
+function taskRewardIcons(rewardEligible=true){
+  if(!rewardEligible)return '<span class="task-reward-icons"><span class="task-reward-chip" title="自定义任务仅记录完成">记录</span></span>';
   return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加1">
     <span class="task-reward-chip task-reward-point" title="积分 +2">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6.5l1.7 3.2 3.6.5-2.6 2.5.6 3.6-3.3-1.7-3.3 1.7.6-3.6-2.6-2.5 3.6-.5z"/></svg><b>+2</b>
     </span>
-    <span class="task-reward-chip task-reward-fish" title="小鱼干 +1">
+    <span class="task-reward-chip task-reward-fish" title="小鱼干 +1，每天最多6条">
       <svg viewBox="0 0 28 20" aria-hidden="true"><path d="M3 10c4-5 9-7 14-5 2 .8 3.8 2.2 5 4l4-3v8l-4-3c-1.2 1.8-3 3.2-5 4-5 2-10 0-14-5z"/><circle cx="17" cy="8" r="1.2"/></svg><b>+1</b>
     </span>
   </span>`
@@ -445,9 +453,9 @@ function home(){
       <div class="home-pet-info">
         <div class="home-pet-title"><div><b>奶糕</b><span>我的橘猫伙伴</span></div><button class="plain-link" data-go="pet">去互动 ›</button></div>
         <div class="home-pet-vitals">
-          <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${state.pet.hunger}</span>
-          <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${state.pet.cleanliness}</span>
-          <span class="${petStatusClass(state.pet.health)}">❤️ ${state.pet.health}</span>
+          <span class="${petStatusClass(state.pet.hunger)}">🍽️ ${petDisplay(state.pet.hunger)}</span>
+          <span class="${petStatusClass(state.pet.cleanliness)}">🫧 ${petDisplay(state.pet.cleanliness)}</span>
+          <span class="${petStatusClass(state.pet.health)}">❤️ ${petDisplay(state.pet.health)}</span>
           <span>🐟 ${state.fish}</span>
         </div>
         <p>${esc(petConditionMessage())}</p>
@@ -456,7 +464,7 @@ function home(){
 
     <section class="card task-board-card">
       <div class="board-head">
-        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成</span></div>
+        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成 · 今日🐟 ${dailyFishEarned(key())}/${DAILY_FISH_CAP}</span></div>
         <button class="plain-link" data-go="calendar">查看日历 ›</button>
       </div>
       <div class="task-board">${tt.map(boardTaskCard).join('')}</div>
@@ -471,7 +479,7 @@ function boardTaskCard(t){
   return `<button class="board-task ${ok?'done':''}" data-board-check="${t.id}" ${ok?'disabled':''} aria-label="${esc(t.name)}，${ok?'已完成':'点击完成'}">
     <span class="board-task-icon-stack">
       <span class="board-task-icon" style="--dot:${m[2]}">${t.icon}</span>
-      ${taskRewardIcons()}
+      ${taskRewardIcons(!!t.builtin)}
     </span>
     <span class="board-task-copy"><b>${esc(t.name)}</b><small>${m[0]}</small></span>
     <span class="board-check" aria-hidden="true">${ok?'✓':''}</span>
@@ -480,16 +488,27 @@ function boardTaskCard(t){
 function taskCard(t){
   const ok=done(t.id);
   return `<button class="task-card simple-task-card ${ok?'done':''}" data-check="${t.id}" ${ok?'disabled':''}>
-    <span class="simple-task-icon-stack"><span class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</span>${taskRewardIcons()}</span>
+    <span class="simple-task-icon-stack"><span class="task-icon" style="--ib:${meta[t.subject]?.[2]||'#f4f1ee'}">${t.icon}</span>${taskRewardIcons(!!t.builtin)}</span>
     <span class="task-name">${esc(t.name)}</span>
     <span class="simple-check">${ok?'✓':''}</span>
   </button>`
 }
 function complete(id){
-  const r=rec(key(),new Date());if(r.completed.includes(id))return;
-  r.completed.push(id);state.points+=2;state.fish++;updatePetNeeds(nowMs(),false);state.pet.mood=clampPet(state.pet.mood+2);
-  state.pet.message='收到一条小鱼干！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
-  soundCheckin();toast('完成啦！+2分 · 🐟 +1');
+  const today=key(),r=rec(today,new Date());if(r.completed.includes(id))return;
+  const t=state.tasks.find(x=>x.id===id),rewardEligible=!!t?.builtin;
+  const beforeFish=dailyFishEarned(today);
+  const fishDelta=rewardEligible&&beforeFish<DAILY_FISH_CAP?1:0;
+  const pointsDelta=rewardEligible?2:0;
+  r.completed.push(id);
+  r.fishEarned=Math.min(DAILY_FISH_CAP,beforeFish+fishDelta);
+  state.points+=pointsDelta;state.fish+=fishDelta;
+  updatePetNeeds(nowMs(),false);
+  if(rewardEligible)state.pet.mood=clampPet(state.pet.mood+2);
+  state.pet.message=fishDelta?'收到一条小鱼干！你今天又前进了一点点。':'任务完成啦，奶糕看见你的努力了。';
+  logEconomy('task-complete',{taskId:id,date:today,deltaFish:fishDelta,deltaPoints:pointsDelta,rewardEligible});
+  save();pauseUntil=Date.now()+15000;
+  soundCheckin();
+  toast(rewardEligible?(fishDelta?'完成啦！+2分 · 🐟 +1':'完成啦！+2分 · 今日小鱼干已满6条'):'自定义任务已记录');
   const back=cur;
   if(meta[back])subject(back);else home();
 }
@@ -512,7 +531,7 @@ function subject(s){
           <button class="subject-min-hit" ${scheduled&&!ok?`data-subcheck="${t.id}"`:''} ${ok||!scheduled?'disabled':''} aria-label="${esc(t.name)}，${ok?'已完成':scheduled?'点击完成':'今天不安排'}">
             <span class="subject-min-icon-stack">
               <span class="subject-clean-task-icon" style="--subject-bg:${m[2]}">${t.icon}</span>
-              ${taskRewardIcons()}
+              ${taskRewardIcons(!!t.builtin)}
             </span>
             <span class="subject-min-copy">
               <b>${esc(t.name)}</b>
@@ -551,7 +570,7 @@ function taskModal(s,id){
     syncTodayPlan();save();closeModal();subject(s)
   }
 }
-function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼干商城</h1><p>学习赚小鱼干，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>`<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>与奶糕互动时使用</p><button data-buy="${i.id}">🐟 ${i.cost} · 兑换</button></div>`).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(state.fish<i.cost)return toast('小鱼干还不够');state.fish-=i.cost;state.inventory[i.id]=(state.inventory[i.id]||0)+1;save();toast(i.name+' 已放进宠物用品');renderShop()})}
+function renderShop(){const c=state.shopCat||'食物',items=shop.filter(i=>i.cat===c);page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🛒 小鱼干商城</h1><p>学习赚小鱼干，兑换奶糕用品。当前 🐟 <b>${state.fish}</b></p></div></div><div class="shop-cats">${['食物','玩具','洗漱','医疗'].map(x=>`<button class="cat-tab ${x===c?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div class="shop-grid">${items.map(i=>{const owned=i.type==='durable'&&(state.inventory[i.id]||0)>0;return `<div class="shop-item"><div class="shop-icon">${i.emoji}</div><h3>${i.name}</h3><p>${i.type==='durable'?'耐用品 · 买一次可重复使用':'消耗品 · 使用后会减少'}</p><button data-buy="${i.id}" ${owned?'disabled':''}>${owned?'✓ 已拥有':'🐟 '+i.cost+' · 兑换'}</button></div>`}).join('')}</div></div>`;page.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.shopCat=b.dataset.cat;save();renderShop()});page.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{const i=shop.find(x=>x.id===b.dataset.buy);if(!i)return;if(i.type==='durable'&&(state.inventory[i.id]||0)>0)return toast('这个耐用品已经拥有');if(state.fish<i.cost)return toast('小鱼干还不够');state.fish-=i.cost;state.inventory[i.id]=i.type==='durable'?1:(state.inventory[i.id]||0)+1;logEconomy('shop-purchase',{itemId:i.id,itemName:i.name,deltaFish:-i.cost,deltaPoints:0,itemType:i.type});save();toast(i.name+' 已放进宠物用品');renderShop()})}
 function playPetSound(name){
   setPlaybackAudioSession();unlockAudio();
   ({crunch:soundCrunch,lick:soundLick,pop:soundPop,rustle:soundRustle,ball:soundBall,scratch:soundScratch,brush:soundBrush,clip:soundClip,care:soundCare,softcare:soundSoftCare,rest:soundRest,toy:soundToy,splash:soundSplash,purr:soundPurr,meow:soundMeow}[name]||(()=>{}))()
@@ -646,14 +665,14 @@ function renderPet(){
         <h3>和奶糕互动</h3>
         <div class="pet-quick-actions">${quick.map(x=>`<button class="pet-quick" data-act="${x[0]}"><span>${x[1]}</span><b>${x[2]}</b></button>`).join('')}</div>
         <div class="pet-vitals">
-          <div class="pet-vital"><div><span>🍽️ 饱腹</span><b>${state.pet.hunger}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.hunger)}"><i style="width:${state.pet.hunger}%"></i></div></div>
-          <div class="pet-vital"><div><span>🫧 清洁</span><b>${state.pet.cleanliness}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.cleanliness)}"><i style="width:${state.pet.cleanliness}%"></i></div></div>
-          <div class="pet-vital"><div><span>❤️ 健康</span><b>${state.pet.health}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${state.pet.health}%"></i></div></div>
-          <div class="pet-vital"><div><span>😊 心情</span><b>${state.pet.mood}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${state.pet.mood}%"></i></div></div>
+          <div class="pet-vital"><div><span>🍽️ 饱腹</span><b>${petDisplay(state.pet.hunger)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.hunger)}"><i style="width:${petDisplay(state.pet.hunger)}%"></i></div></div>
+          <div class="pet-vital"><div><span>🫧 清洁</span><b>${petDisplay(state.pet.cleanliness)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.cleanliness)}"><i style="width:${petDisplay(state.pet.cleanliness)}%"></i></div></div>
+          <div class="pet-vital"><div><span>❤️ 健康</span><b>${petDisplay(state.pet.health)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.health)}"><i style="width:${petDisplay(state.pet.health)}%"></i></div></div>
+          <div class="pet-vital"><div><span>😊 心情</span><b>${petDisplay(state.pet.mood)}%</b></div><div class="pet-vital-bar ${petStatusClass(state.pet.mood)}"><i style="width:${petDisplay(state.pet.mood)}%"></i></div></div>
         </div>
         <div class="sound-tip">🔊 摸摸：真实猫叫 → 呼噜；“叫一声”会直接播放真实猫叫</div>
         <h3>我的宠物用品</h3>
-        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
+        <div class="pet-inventory">${own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">还没有用品，先去商城用小鱼干兑换吧。</div>'}</div>
         <div class="audio-credit">猫叫：Dan Crosby / Wikimedia Commons（CC BY-SA 3.0） · 呼噜：Mysid / Public Domain</div>
       </div>
     </div>
@@ -696,8 +715,11 @@ function usePetItem(id){
   if(!i||!state.inventory[i.id]||!r)return;
   petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
 
-  state.inventory[i.id]=Math.max(0,(Number(state.inventory[i.id])||0)-1);
-  if(state.inventory[i.id]===0)delete state.inventory[i.id];
+  if(i.type==='consumable'){
+    state.inventory[i.id]=Math.max(0,(Number(state.inventory[i.id])||0)-1);
+    if(state.inventory[i.id]===0)delete state.inventory[i.id];
+  }
+  logEconomy('pet-item-use',{itemId:i.id,itemName:i.name,deltaFish:0,deltaPoints:0,itemType:i.type});
   applyPetEffect(r.effect||{mood:r.mood||3});
 
   setPetVisual('attention',r.notice,'',r.prop);
@@ -720,7 +742,7 @@ function usePetItem(id){
 function renderPetInventoryOnly(){
   const box=document.querySelector('.pet-inventory');if(!box)return;
   const own=shop.filter(i=>(state.inventory[i.id]||0)>0);
-  box.innerHTML=own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>×${state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">用品已经用完，去商城补充吧。</div>';
+  box.innerHTML=own.length?own.map(i=>`<div class="inv-card"><div><b>${i.emoji} ${i.name}</b><small>${i.type==='durable'?'可重复使用':'×'+state.inventory[i.id]}</small></div><button class="secondary-btn" data-use="${i.id}">使用</button></div>`).join(''):'<div class="empty-note">用品已经用完，去商城补充吧。</div>';
   box.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>usePetItem(b.dataset.use));
 }
 function renderRewards(){
@@ -749,7 +771,7 @@ function renderRewards(){
   page.querySelectorAll('[data-red]').forEach(b=>b.onclick=()=>{
     const r=all.find(x=>x.id===b.dataset.red);
     if(!r||state.points<r.points)return;
-    state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});save();toast('已兑换：'+r.title);renderRewards()
+    state.points-=r.points;state.rewardLog.push({title:r.title,date:key(),points:r.points});logEconomy('reward-redeem',{rewardId:r.id,title:r.title,deltaFish:0,deltaPoints:-r.points});save();toast('已兑换：'+r.title);renderRewards()
   })
 }
 function renderCalendar(){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),cells=[];for(let i=0;i<(first.getDay()+6)%7;i++)cells.push('');for(let d=1;d<=last.getDate();d++)cells.push(d);while(cells.length%7)cells.push('');let mf=0;for(let d=1;d<=n.getDate();d++)if(full(new Date(y,m,d)))mf++;page.innerHTML=`<div class="page-panel"><div class="section-hero"><div><h1>🗓️ 学习日历</h1><p>绿色已打卡，粉色未打卡，灰色未到时间。</p></div><b>${y}.${String(m+1).padStart(2,'0')}</b></div><div class="calendar-wrap"><div class="calendar-card"><div class="calendar-head"><h2>${y}年${m+1}月</h2></div><div class="calendar-grid">${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-week">${x}</div>`).join('')}${cells.map(d=>{if(!d)return'<div></div>';let dt=new Date(y,m,d),today=new Date();today.setHours(0,0,0,0);dt.setHours(0,0,0,0);let c=dt>today?'future':full(dt)?'done':'missed';return `<div class="cal-day ${c} ${d===n.getDate()?'today':''}">${d}</div>`}).join('')}</div></div><div class="stats-card"><h2>本月统计</h2><div class="stat-big">${mf}天</div><p>已完成全部任务</p><button class="secondary-btn" id="recover">数据恢复</button><button class="secondary-btn" id="export">导出备份</button><button class="secondary-btn" id="import">导入备份</button></div></div></div>`;$('#recover').onclick=()=>openRecovery();$('#export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='喵喵打卡备份-'+key()+'.json';a.click()};$('#import').onclick=()=>$('#importInput').click()}
@@ -757,9 +779,9 @@ $('#importInput').onchange=async e=>{try{const d=JSON.parse(await e.target.files
 function openRecovery(){
   const b=availableBackups();
   modal(`<h2>数据恢复</h2>
-    <p style="font-size:12px;color:#777">系统会保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
+    <p style="font-size:12px;color:#777">系统会在这台设备保存最近版本和每日快照。恢复前，当前数据也会先备份。</p>
     <div style="font-size:11px;line-height:1.5;background:#fff7ea;border:1px solid #f0dfbd;border-radius:10px;padding:7px 9px;margin:7px 0">
-      已确认并保护：9月18日 6/6、至少24积分、至少🐟17，以及猫条×1、纸箱×1、梳毛刷×1。恢复更早的备份时，这些已确认历史记录会自动补回。
+      v4 起不再自动写入任何历史打卡、库存或欢迎小鱼干；恢复内容以所选备份本身为准。建议定期导出 JSON 作为设备外备份。
     </div>
     <div class="recovery-list">${b.length?b.map((x,i)=>{
       const s=backupSummary(x.state),label=x.key.startsWith(BACKUP_DAILY_PREFIX)?x.key.slice(BACKUP_DAILY_PREFIX.length):(x.key===BACKUP_LATEST?'最近备份':'上一个备份');
@@ -804,8 +826,17 @@ document.addEventListener('visibilitychange',()=>{
     else if(cur==='home')home();
   }
 });
-renderNav();home();
-if(inventoryRestoreApplied)setTimeout(()=>toast('已恢复宠物用品：猫条×1 · 纸箱×1 · 梳毛刷×1'),500);else if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
+function startVitalsHeartbeat(){
+  if(vitalsTimer)clearInterval(vitalsTimer);
+  vitalsTimer=setInterval(()=>{
+    if(document.hidden)return;
+    updatePetNeeds();
+    if(cur==='home')home();
+    else if(cur==='pet'&&!petBusy)renderPet();
+  },60000);
+}
+renderNav();home();startVitalsHeartbeat();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
