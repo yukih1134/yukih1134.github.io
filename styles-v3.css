@@ -42,3 +42,63 @@ body{background:linear-gradient(180deg,#fff9f9,#fff5f6)!important;color:var(--v3
 .v3-inventory-list{display:grid!important;grid-template-columns:1fr!important;gap:7px!important}.v3-inventory-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:#fff9fa;border:1px solid #f1e3e6;border-radius:14px;padding:7px}.v3-inventory-item>span{font-size:22px}.v3-inventory-item b{display:block;font-size:10px}.v3-inventory-item small{display:block;font-size:8px;color:#9e818a}.v3-inventory-item button{border:0;background:#fff0f4;color:#d85d86;border-radius:999px;padding:5px 8px;font-weight:800;font-size:9px}
 @media(max-height:420px){.v3-pet-stage{min-height:220px!important}.v3-action-bar span{font-size:18px}.v3-action-bar button{padding:6px 4px}.v3-pet-side{gap:7px}.v3-vitals-card,.v3-inventory-card{padding:9px!important}}
 @media(max-width:720px){.v3-pet-layout{grid-template-columns:1fr}.v3-action-bar{grid-template-columns:repeat(3,1fr)}}
+
+/* 3.0 sprite + illustrated room runtime */
+.v3-pet-room-bg{
+  position:absolute;inset:0;z-index:0;border-radius:inherit;overflow:hidden;
+  background-image:
+    linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,245,246,.04)),
+    var(--v3-room);
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+}
+.v3-pet-stage.morning .v3-pet-room-bg{filter:brightness(1.04) saturate(.98)}
+.v3-pet-stage.evening .v3-pet-room-bg{filter:sepia(.06) saturate(.96) brightness(.98)}
+.v3-pet-stage.night .v3-pet-room-bg{filter:brightness(.62) saturate(.78) hue-rotate(7deg)}
+.v3-pet-stage:after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(180deg,transparent 54%,rgba(111,65,54,.055));
+}
+.v3-pet-sprite{
+  --sx:0;--sy:0;
+  width:100%;aspect-ratio:1/1;
+  background-image:var(--v3-sprite);
+  background-repeat:no-repeat;
+  background-size:400% 300%;
+  background-position:calc(var(--sx) * 33.333333%) calc(var(--sy) * 50%);
+}
+.v3-avatar{
+  --pet-x:0px;--pet-y:0px;
+  width:205px!important;height:205px!important;
+  position:absolute!important;left:50%!important;top:auto!important;bottom:12px!important;
+  margin:0!important;z-index:5!important;
+  transform:translate(calc(-50% + var(--pet-x)),var(--pet-y))!important;
+  transition:transform .78s cubic-bezier(.25,.8,.22,1),filter .25s ease,opacity .25s ease;
+}
+.v3-main-sprite{width:100%;height:100%;filter:drop-shadow(0 13px 11px rgba(110,70,52,.19))}
+.v3-home-cat{width:122px!important;height:122px!important;filter:drop-shadow(0 8px 8px rgba(112,70,53,.15))}
+.v3-mini-cat{inset:auto!important;left:12px!important;bottom:4px!important;width:138px!important;height:138px!important;display:grid!important;place-items:end center!important}
+.v3-story-scene{
+  background:rgba(255,247,244,.94)!important;display:grid!important;place-items:center!important;
+}
+.v3-story-sprite{width:min(72%,210px)!important;height:auto!important;filter:drop-shadow(0 10px 9px rgba(107,64,48,.16))}
+.v3-pet-stage .room-items{z-index:3!important;pointer-events:none}
+.v3-pet-stage .room-object{pointer-events:auto!important}
+.v3-avatar[data-zone="bowl"]{--pet-x:-126px;--pet-y:10px}
+.v3-avatar[data-zone="window"]{--pet-x:-92px;--pet-y:-54px}
+.v3-avatar[data-zone="box"]{--pet-x:112px;--pet-y:5px}
+.v3-avatar[data-zone="bed"]{--pet-x:78px;--pet-y:14px}
+.v3-avatar[data-zone="center"]{--pet-x:0px;--pet-y:0px}
+.v3-avatar.v3-walking{animation:v3WalkBob .36s ease-in-out infinite alternate}
+@keyframes v3WalkBob{
+  from{margin-bottom:0}
+  to{margin-bottom:4px}
+}
+.v3-avatar[data-v3-health="sick"]{filter:saturate(.7) brightness(.94)}
+@media(max-height:420px){
+  .v3-avatar{width:160px!important;height:160px!important;bottom:5px!important}
+  .v3-avatar[data-zone="bowl"]{--pet-x:-96px;--pet-y:10px}
+  .v3-avatar[data-zone="window"]{--pet-x:-70px;--pet-y:-35px}
+  .v3-avatar[data-zone="box"]{--pet-x:88px;--pet-y:7px}
+  .v3-avatar[data-zone="bed"]{--pet-x:66px;--pet-y:10px}
+  .v3-home-cat{width:100px!important;height:100px!important}
+}
