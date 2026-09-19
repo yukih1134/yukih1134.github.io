@@ -624,12 +624,14 @@ function startPetSession(){
   clearPetTimers();
   stopPetAudio();
   petBusy=false;
+  resetPetScene();
 }
 function stopPetSession(){
   petSession++;
   clearPetTimers();
   petBusy=false;
   stopPetAudio();
+  resetPetScene();
 }
 function setPetVisual(cls,text,fx='',prop=''){
   if(cur!=='pet')return;
@@ -744,6 +746,7 @@ function renderPet(){
           ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
         </div>
         <div class="pet-effect-layer" id="petEffects"></div>
+        <div class="pet-scene-overlay" id="petSceneOverlay"></div>
         <div class="cat-avatar idle ${petVisualConditionClasses()}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
         <div class="pet-prop" id="petProp"></div>
       </div>
@@ -796,35 +799,142 @@ function petNeed(name){
   updatePetNeeds();state.pet.message='还缺'+name+'，去商城准备一下吧～';save();setPlaybackAudioSession();catMeow();toast('需要先兑换'+name);
   const m=$('#petMessage');if(m)m.textContent=state.pet.message;
 }
-function usePetItem(id){
-  if(cur!=='pet'||petBusy)return;
-  const i=shop.find(x=>x.id===id),r=petReactions[id];
-  if(!i||!state.inventory[i.id]||!r)return;
-  petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
-
+function setPetScene(scene='',phase=''){
+  const stage=$('#petStage');
+  if(!stage)return;
+  [...stage.classList].filter(x=>x.startsWith('scene-')||x.startsWith('phase-')).forEach(x=>stage.classList.remove(x));
+  if(scene)stage.classList.add('scene-'+scene);
+  if(phase)stage.classList.add('phase-'+phase);
+}
+function setSceneOverlay(html=''){
+  const o=$('#petSceneOverlay');if(o)o.innerHTML=html;
+}
+function resetPetScene(){
+  setPetScene();setSceneOverlay('');
+}
+function commitPetItemUse(i,r){
   if(i.type==='consumable'){
     state.inventory[i.id]=Math.max(0,(Number(state.inventory[i.id])||0)-1);
     if(state.inventory[i.id]===0)delete state.inventory[i.id];
   }
   logEconomy('pet-item-use',{itemId:i.id,itemName:i.name,deltaFish:0,deltaPoints:0,itemType:i.type});
+  renderPetInventoryOnly();
+  save();
+}
+function finishSceneWithEffect(i,r,end,cls='happy',keepProp=''){
   applyPetEffect(r.effect||{mood:r.mood||3});
-
+  setPetVisual(cls,end,'',keepProp);
+  toast(i.name+' 已使用');
+  petDelay(()=>{resetPetScene();finishPetAction(end)},900);
+}
+function runFeedingScene(i,r){
+  setPetScene('feed','approach');
+  setSceneOverlay('<div class="scene-bowl"><span class="scene-food food-1"></span><span class="scene-food food-2"></span><span class="scene-food food-3"></span><span class="scene-food food-4"></span><b>♡</b></div>');
+  setPetVisual('feed-approach',r.notice,'',r.prop);
+  soundRustle();
+  petDelay(()=>{
+    setPetScene('feed','sniff');
+    setPetVisual('feed-sniff','奶糕走到饭碗前，先认真闻了闻。','<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',r.prop);
+  },650);
+  petDelay(()=>{
+    setPetScene('feed','eat');
+    setPetVisual(r.cls,r.text,r.fx,r.prop);
+    playPetSound(r.sound);
+  },1250);
+  petDelay(()=>{
+    setPetScene('feed','lick');
+    setPetVisual('feed-lick','奶糕吃得差不多了，抬头舔了舔嘴巴。','<span class="lick-mark">〰</span>',r.prop);
+  },3000);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'奶糕吃饱啦，满足地眯起眼睛看着你。');
+  },3900);
+}
+function runBathScene(i,r){
+  setPetScene('bath','notice');
+  setSceneOverlay('<div class="scene-tub"><span class="tub-rim"></span><span class="water-line"></span></div><div class="scene-shower">⌇⌇⌇</div>');
+  setPetVisual('bath-notice','听见水声，奶糕耳朵动了一下，往后退了半步。','','<span class="prop-shower">🚿</span>');
+  soundSplash();
+  petDelay(()=>{
+    setPetScene('bath','wash');
+    setPetVisual('care-bath','温水慢慢打湿毛毛，泡泡一点点把脏东西洗掉。','<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>','<span class="prop-shower">🚿</span>');
+  },850);
+  petDelay(()=>{
+    setPetScene('bath','rinse');
+    setPetVisual('bath-rinse','冲洗干净后，奶糕眯着眼睛等你帮它擦干。','<span class="bubble bubble-2">○</span>','');
+  },2800);
+  petDelay(()=>{
+    setPetScene('bath','shake');
+    setPetVisual('bath-shake','奶糕突然用力甩了甩毛，水珠飞得到处都是！','<span class="splash-drop d1">•</span><span class="splash-drop d2">•</span><span class="splash-drop d3">•</span>','');
+    playPetSound('splash');
+  },3650);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'洗香香完成！奶糕的毛又蓬松又干净。');
+  },4650);
+}
+function runBrushScene(i,r){
+  setPetScene('brush','start');
+  setSceneOverlay('<div class="scene-brush-track"><span class="scene-brush-tool">🪮</span></div>');
+  setPetVisual('attention','梳子靠近，奶糕先回头闻了闻。','','');
+  petDelay(()=>{
+    setPetScene('brush','stroke');
+    setPetVisual('care-brush','从头到背轻轻梳下去，奶糕舒服得眯起眼睛。','<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>','');
+    playPetSound('brush');catPurr();
+  },700);
+  petDelay(()=>{
+    setPetScene('brush','lean');
+    setPetVisual('purring','奶糕主动把背拱起来，像是在说“这里也要梳～”。','<span class="heart pet-heart-1">♥</span>','');
+  },2300);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'梳完毛啦，奶糕贴过来蹭了蹭你的手。');
+  },3400);
+}
+function runBoxScene(i,r){
+  setPetScene('box','approach');
+  setSceneOverlay('<div class="scene-cardboard"><span class="box-ear left"></span><span class="box-ear right"></span><b>奶糕的小纸箱 ♡</b></div>');
+  setPetVisual('box-approach','奶糕发现纸箱，围着它走了一圈。','','');
+  soundRustle();
+  petDelay(()=>{
+    setPetScene('box','jump');
+    setPetVisual('box-jump','奶糕突然轻轻一跳，前爪搭在纸箱边上。','','');
+  },800);
+  petDelay(()=>{
+    setPetScene('box','hide');
+    setPetVisual('play-box','嗖的一下钻进纸箱，只露出两只眼睛偷偷看你。','<span class="peek-mark">…</span>','');
+    playPetSound('rustle');
+  },1550);
+  petDelay(()=>{
+    setPetScene('box','peek');
+    setPetVisual('box-peek','奶糕从纸箱里探出脑袋：被你发现啦！','<span class="heart pet-heart-1">♥</span>','');
+  },3200);
+  petDelay(()=>{
+    finishSceneWithEffect(i,r,'奶糕决定先把这个纸箱当成今天的秘密基地。');
+  },4200);
+}
+function runPetItemScene(i,r){
+  if(i.action==='feed')return runFeedingScene(i,r);
+  if(i.id==='care-bath')return runBathScene(i,r);
+  if(i.id==='care-brush')return runBrushScene(i,r);
+  if(i.id==='toy-box')return runBoxScene(i,r);
   setPetVisual('attention',r.notice,'',r.prop);
-  soundRustle();renderPetInventoryOnly();
-
+  soundRustle();
   petDelay(()=>{
     setPetVisual(r.cls,r.text,r.fx,r.prop);
-    playPetSound(r.sound);toast(i.name+' 已使用');
+    playPetSound(r.sound);
     petDelay(()=>{
       let end='奶糕用完'+i.name+'，舒服地坐了下来。';
-      if(i.action==='feed')end='奶糕吃完后舔舔嘴巴，满足地坐在旁边。';
       if(i.action==='play')end='奶糕玩累了一点，趴下来休息。';
-      if(id==='care-bath')end='奶糕甩了甩毛，终于洗干净啦。';
-      if(id==='med-rest')end='奶糕已经睡着了，呼吸慢慢变得平稳。';
-      setPetVisual(id==='med-rest'?'sleeping':'happy',end,'',id==='med-rest'?r.prop:'');
-      finishPetAction(end);
+      if(i.id==='med-rest')end='奶糕已经睡着了，呼吸慢慢变得平稳。';
+      finishSceneWithEffect(i,r,end,i.id==='med-rest'?'sleeping':'happy',i.id==='med-rest'?r.prop:'');
     },1900);
   },550);
+}
+function usePetItem(id){
+  if(cur!=='pet'||petBusy)return;
+  const i=shop.find(x=>x.id===id),r=petReactions[id];
+  if(!i||!state.inventory[i.id]||!r)return;
+  petBusy=true;clearPetTimers();setPlaybackAudioSession();unlockAudio();
+  commitPetItemUse(i,r);
+  runPetItemScene(i,r);
 }
 function renderPetInventoryOnly(){
   const box=document.querySelector('.pet-inventory');if(!box)return;
