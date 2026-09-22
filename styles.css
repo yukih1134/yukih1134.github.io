@@ -370,3 +370,20 @@ html,body{background:var(--bg)}
 .cat-avatar.pet-sick .cat-head-g{transform:rotate(4deg);transform-origin:136px 95px}
 @keyframes conditionBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes conditionPulse{0%,100%{opacity:.45}50%{opacity:1}}
 @media(max-height:390px){.pet-vitals{gap:5px;margin:5px 0}.pet-vital{padding:5px}.pet-vital>div:first-child{margin-bottom:3px}.home-pet-vitals span{font-size:8px;padding:2px 4px}}
+
+/* v20: iOS Safari is maintenance/install only; standalone Home Screen app owns user data */
+body.safari-maintenance .sidebar{display:none!important}
+body.safari-maintenance .workspace{width:100%}
+body.safari-maintenance .hero{display:none}
+body.safari-maintenance .page{padding:0;background:#fff9fb}
+.maintenance-page{min-height:100%;display:grid;place-items:center;padding:24px}
+.maintenance-card{width:min(680px,92vw);background:#fff;border:1px solid #eee5e8;border-radius:24px;padding:28px;box-shadow:0 10px 32px rgba(87,58,68,.08);text-align:center}
+.maintenance-icon{font-size:44px;margin-bottom:8px}
+.maintenance-card h1{font-size:24px;margin:4px 0 10px;color:#3e3338}
+.maintenance-card>p{font-size:14px;line-height:1.65;color:#776b70;margin:0 auto 18px;max-width:570px}
+.maintenance-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;text-align:left}
+.maintenance-steps div{background:#fff7fa;border:1px solid #f1e6ea;border-radius:15px;padding:12px}
+.maintenance-steps b{display:block;font-size:14px;margin-bottom:4px}
+.maintenance-steps span{display:block;font-size:12px;line-height:1.5;color:#7b7075}
+.maintenance-version{margin-top:16px;font-size:11px;color:#aaa0a5}
+@media(max-width:650px){.maintenance-steps{grid-template-columns:1fr}.maintenance-card{padding:22px}.maintenance-card h1{font-size:21px}}
