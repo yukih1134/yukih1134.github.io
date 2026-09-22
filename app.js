@@ -1,5 +1,8 @@
 (()=>{'use strict';
 const K='miaomiao-study-desk-v2',$=s=>document.querySelector(s),nav=$('#nav'),page=$('#page');
+const IS_STANDALONE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const IS_IOS_BROWSER=IS_IOS&&!IS_STANDALONE;
 const navs=[['home','首页','⌂'],['chinese','语文','书'],['math','数学','123'],['english','英语','Aa'],['sport','运动','动'],['shop','商城','店'],['pet','宠物','猫'],['rewards','奖励','☆'],['calendar','日历','日']];
 const meta={chinese:['语文','📖','#f6e4e8'],math:['数学','123','#eaf2fb'],english:['英语','ABC','#f9efde'],sport:['运动','🪢','#e7f4ea']};
 const wd=['日','一','二','三','四','五','六'];
@@ -272,12 +275,14 @@ function restoreBackupByKey(k){
   }catch{return false}
 }
 
-ensurePetVitals();
-updatePetNeeds(nowMs(),false);
-if(loaded.source!=='new')snapshotCurrentRaw();
-migrateLegacyMigrationFlags();
-applyKnownMigrations();
-save();
+if(!IS_IOS_BROWSER){
+  ensurePetVitals();
+  updatePetNeeds(nowMs(),false);
+  if(loaded.source!=='new')snapshotCurrentRaw();
+  migrateLegacyMigrationFlags();
+  applyKnownMigrations();
+  save();
+}
 const key=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tasks=d=>state.tasks.filter(t=>t.days.includes(d.getDay())),core=d=>tasks(d),done=(id,k=key())=>(state.records[k]?.completed||[]).includes(id);
 const rec=(k,d=new Date())=>{
@@ -790,6 +795,22 @@ function openRecovery(){
     if(restoreBackupByKey(x.key)){closeModal();toast('已恢复历史数据');renderNav();render()}
   });
 }
+function renderSafariMaintenance(){
+  document.body.classList.add('safari-maintenance');
+  nav.innerHTML='';
+  page.innerHTML=`<div class="maintenance-page">
+    <div class="maintenance-card">
+      <div class="maintenance-icon">📱</div>
+      <h1>请从主屏幕打开“喵喵的打卡工作台”</h1>
+      <p>这台 iPhone 的 Safari 与主屏幕工作台使用两套独立的本地数据。为了避免打卡、积分和宠物库存分叉，Safari 现在只作为更新与安装入口，不再显示或修改正式数据。</p>
+      <div class="maintenance-steps">
+        <div><b>已经安装</b><span>关闭 Safari，点击主屏幕上的“喵喵打卡”图标继续使用。</span></div>
+        <div><b>还没安装</b><span>点 Safari 的分享按钮 → 添加到主屏幕 → 从新图标进入。</span></div>
+      </div>
+      <div class="maintenance-version">当前网页版本：v20</div>
+    </div>
+  </div>`;
+}
 function bindGo(){page.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go))}
 function modal(h){$('#modalRoot').innerHTML='<div class="modal-backdrop"><div class="modal">'+h+'</div></div>';document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal)}
 function closeModal(){$('#modalRoot').innerHTML=''}
@@ -816,6 +837,7 @@ document.addEventListener('pointerdown',unlockAudio,{passive:true});
 syncLandscape();
 setDefaultAudioSession();
 document.addEventListener('visibilitychange',()=>{
+  if(IS_IOS_BROWSER)return;
   if(document.hidden&&cur==='pet')stopPetSession();
   else if(!document.hidden){
     updatePetNeeds();
@@ -823,8 +845,14 @@ document.addEventListener('visibilitychange',()=>{
     else if(cur==='home')home();
   }
 });
-renderNav();home();
-if(inventoryRestoreApplied)setTimeout(()=>toast('已恢复宠物用品：猫条×1 · 纸箱×1 · 梳毛刷×1'),500);else if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
+if(IS_IOS_BROWSER){
+  renderSafariMaintenance();
+}else{
+  renderNav();home();
+  if(inventoryRestoreApplied)setTimeout(()=>toast('已恢复宠物用品：猫条×1 · 纸箱×1 · 梳毛刷×1'),500);
+  else if(evidenceRestoreApplied)setTimeout(()=>toast('已恢复：9月18日 6/6 · 24积分 · 🐟17'),500);
+  else if(starterFishGranted)setTimeout(()=>toast('欢迎礼包：🐟 +6'),450);
+}
 if('serviceWorker'in navigator)addEventListener('load',async()=>{
   try{
     const reg=await navigator.serviceWorker.register('./sw.js');
