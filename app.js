@@ -296,12 +296,12 @@ const weekDates=()=>{const s=weekStart();return Array.from({length:7},(_,i)=>{le
 const weekFull=()=>{let n=new Date();n.setHours(23,59,59,999);return weekDates().filter(d=>d<=n&&full(d)).length};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function taskRewardIcons(){
-  return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加1">
+  return `<span class="task-reward-icons" aria-label="积分加2，小鱼干加2">
     <span class="task-reward-chip task-reward-point" title="积分 +2">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6.5l1.7 3.2 3.6.5-2.6 2.5.6 3.6-3.3-1.7-3.3 1.7.6-3.6-2.6-2.5 3.6-.5z"/></svg><b>+2</b>
     </span>
-    <span class="task-reward-chip task-reward-fish" title="小鱼干 +1">
-      <svg viewBox="0 0 28 20" aria-hidden="true"><path d="M3 10c4-5 9-7 14-5 2 .8 3.8 2.2 5 4l4-3v8l-4-3c-1.2 1.8-3 3.2-5 4-5 2-10 0-14-5z"/><circle cx="17" cy="8" r="1.2"/></svg><b>+1</b>
+    <span class="task-reward-chip task-reward-fish" title="小鱼干 +2">
+      <svg viewBox="0 0 28 20" aria-hidden="true"><path d="M3 10c4-5 9-7 14-5 2 .8 3.8 2.2 5 4l4-3v8l-4-3c-1.2 1.8-3 3.2-5 4-5 2-10 0-14-5z"/><circle cx="17" cy="8" r="1.2"/></svg><b>+2</b>
     </span>
   </span>`
 }
@@ -456,7 +456,7 @@ function home(){
 
     <section class="card task-board-card">
       <div class="board-head">
-        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成</span></div>
+        <div><h2>今日任务</h2><span>${n}/${cc.length} 已完成 · 全部完成额外 🐟+3</span></div>
         <button class="plain-link" data-go="calendar">查看日历 ›</button>
       </div>
       <div class="task-board">${tt.map(boardTaskCard).join('')}</div>
@@ -486,10 +486,29 @@ function taskCard(t){
   </button>`
 }
 function complete(id){
-  const r=rec(key(),new Date());if(r.completed.includes(id))return;
-  r.completed.push(id);state.points+=2;state.fish++;updatePetNeeds(nowMs(),false);state.pet.mood=clampPet(state.pet.mood+2);
-  state.pet.message='收到一条小鱼干！你今天又前进了一点点。';save();pauseUntil=Date.now()+15000;
-  soundCheckin();toast('完成啦！+2分 · 🐟 +1');
+  const today=new Date(),r=rec(key(today),today);if(r.completed.includes(id))return;
+  r.completed.push(id);
+  state.points+=2;
+  state.fish+=2;
+  updatePetNeeds(nowMs(),false);
+  state.pet.mood=clampPet(state.pet.mood+2);
+
+  const planned=Array.isArray(r.planned)?r.planned:core(today).map(t=>t.id);
+  const allDone=planned.length>0&&planned.every(taskId=>r.completed.includes(taskId));
+  let bonus=0;
+  if(allDone&&!r.fishBonusAwarded){
+    bonus=3;
+    state.fish+=bonus;
+    r.fishBonusAwarded=true;
+    r.fishBonusAmount=bonus;
+  }
+
+  state.pet.message=bonus
+    ?'今天的任务全部完成啦！奶糕又收到了额外的小鱼干奖励。'
+    :'收到两条小鱼干！你今天又前进了一点点。';
+  save();pauseUntil=Date.now()+15000;
+  soundCheckin();
+  toast(bonus?'完成啦！⭐+2 · 🐟+2 · 全完成额外🐟+3':'完成啦！⭐+2 · 🐟+2');
   const back=cur;
   if(meta[back])subject(back);else home();
 }
