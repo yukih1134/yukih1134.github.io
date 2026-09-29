@@ -24,22 +24,22 @@ const shop=[
 ['med-kit','医疗','护理包','🧰',8,'treat'],['med-cone','医疗','护理头套','🔶',9,'treat'],['med-check','医疗','体检券','🩺',12,'treat'],['med-rest','医疗','休息垫','🛏️',6,'rest']
 ].map(x=>({id:x[0],cat:x[1],name:x[2],emoji:x[3],cost:x[4],action:x[5]}));
 const petReactions={
-'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4,effect:{hunger:34,mood:3}},
-'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5,effect:{hunger:18,mood:5}},
-'food-can':{cls:'eating-can',notice:'罐头刚打开，奶糕就一路小跑过来了。',text:'奶糕埋头吃主食罐头，吃得特别专心。',prop:'<span class="prop-can">🥫</span><span class="prop-bowl">🥣</span>',fx:'<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',sound:'pop',mood:5,effect:{hunger:45,mood:4}},
-'food-freeze':{cls:'eating-freeze',notice:'冻干发出沙沙声，奶糕抬头盯住了袋子。',text:'奶糕叼走一块冻干，嚼得嘎嘣脆。',prop:'<span class="prop-freeze">🍗</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:5,effect:{hunger:25,mood:5}},
-'toy-wand':{cls:'play-wand',notice:'逗猫棒一晃，奶糕的眼睛立刻跟着移动。',text:'奶糕压低身体、瞄准，然后猛地扑向逗猫棒！',prop:'<span class="prop-wand">🪶</span>',fx:'<span class="toy-motion">✦</span>',sound:'toy',mood:6,effect:{mood:10,hunger:-2,clean:-1}},
-'toy-ball':{cls:'play-ball',notice:'小球滚过地板，奶糕歪头盯了两秒。',text:'奶糕用爪子一拍，小球滚远了，它马上追过去。',prop:'<span class="prop-ball">⚽</span>',fx:'<span class="speed-line">➜</span>',sound:'ball',mood:6,effect:{mood:9,hunger:-2}},
-'toy-scratch':{cls:'play-scratch',notice:'奶糕走到猫抓板旁边闻了闻。',text:'奶糕前爪伸直，在猫抓板上认真抓了好几下。',prop:'<span class="prop-scratch">🧶</span>',fx:'<span class="scratch-line">///</span>',sound:'scratch',mood:5,effect:{mood:7,clean:-1}},
+'food-kibble':{cls:'eating-kibble',notice:'听到猫粮声，奶糕马上竖起耳朵。',text:'奶糕走到饭碗前，咔嚓咔嚓认真吃猫粮。',prop:'<span class="prop-kibble">🥣</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:4,effect:{hunger:48,mood:3}},
+'food-treat':{cls:'eating-treat',notice:'奶糕闻到猫条，立刻凑过来闻一闻。',text:'奶糕一小口一小口舔猫条，吃完还舔了舔嘴巴。',prop:'<span class="prop-treat">🐟</span>',fx:'<span class="lick-mark">〰</span>',sound:'lick',mood:5,effect:{hunger:24,mood:5}},
+'food-can':{cls:'eating-can',notice:'罐头刚打开，奶糕就一路小跑过来了。',text:'奶糕埋头吃主食罐头，吃得特别专心。',prop:'<span class="prop-can">🥫</span><span class="prop-bowl">🥣</span>',fx:'<span class="smell smell-1">〜</span><span class="smell smell-2">〜</span>',sound:'pop',mood:5,effect:{hunger:62,mood:4}},
+'food-freeze':{cls:'eating-freeze',notice:'冻干发出沙沙声，奶糕抬头盯住了袋子。',text:'奶糕叼走一块冻干，嚼得嘎嘣脆。',prop:'<span class="prop-freeze">🍗</span>',fx:'<span class="crumb crumb-1">•</span><span class="crumb crumb-2">•</span>',sound:'crunch',mood:5,effect:{hunger:34,mood:5}},
+'toy-wand':{cls:'play-wand',notice:'逗猫棒一晃，奶糕的眼睛立刻跟着移动。',text:'奶糕压低身体、瞄准，然后猛地扑向逗猫棒！',prop:'<span class="prop-wand">🪶</span>',fx:'<span class="toy-motion">✦</span>',sound:'toy',mood:6,effect:{mood:10}},
+'toy-ball':{cls:'play-ball',notice:'小球滚过地板，奶糕歪头盯了两秒。',text:'奶糕用爪子一拍，小球滚远了，它马上追过去。',prop:'<span class="prop-ball">⚽</span>',fx:'<span class="speed-line">➜</span>',sound:'ball',mood:6,effect:{mood:9}},
+'toy-scratch':{cls:'play-scratch',notice:'奶糕走到猫抓板旁边闻了闻。',text:'奶糕前爪伸直，在猫抓板上认真抓了好几下。',prop:'<span class="prop-scratch">🧶</span>',fx:'<span class="scratch-line">///</span>',sound:'scratch',mood:5,effect:{mood:7}},
 'toy-box':{cls:'play-box',notice:'纸箱刚放下，奶糕绕着它转了一圈。',text:'奶糕钻进纸箱，只露出脑袋偷偷观察外面。',prop:'<span class="prop-box">📦</span>',fx:'<span class="peek-mark">…</span>',sound:'rustle',mood:6,effect:{mood:8}},
-'care-brush':{cls:'care-brush',notice:'梳子靠近时，奶糕先回头闻了闻。',text:'从头到背轻轻梳毛，奶糕眯着眼睛坐得很稳。',prop:'<span class="prop-brush">🪮</span>',fx:'<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>',sound:'brush',mood:5,effect:{clean:14,mood:4}},
-'care-bath':{cls:'care-bath',notice:'听见水声，奶糕往后缩了一小步。',text:'温水花洒轻轻冲洗，泡泡洗掉脏东西，最后甩了甩毛。',prop:'<span class="prop-shower">🚿</span>',fx:'<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>',sound:'splash',mood:2,effect:{clean:65,mood:2}},
-'care-towel':{cls:'care-towel',notice:'大毛巾铺开，奶糕站在原地看了看。',text:'毛巾轻轻包住奶糕，把湿湿的毛擦干。',prop:'<span class="prop-towel">🧺</span>',fx:'<span class="warm-line">☀</span>',sound:'rustle',mood:4,effect:{clean:10,mood:3}},
-'care-nail':{cls:'care-nail',notice:'奶糕把爪子缩了一下，但还是乖乖坐好。',text:'只做模拟指甲护理：轻轻托住爪子，一只一只检查。',prop:'<span class="prop-nail">✨</span>',fx:'<span class="paw-mark">🐾</span>',sound:'clip',mood:2,effect:{clean:5,mood:1}},
-'med-kit':{cls:'med-kit',notice:'护理包打开，奶糕安静地看着里面的东西。',text:'完成一次温和的模拟护理，奶糕随后趴下休息。',prop:'<span class="prop-kit">🧰</span>',fx:'<span class="care-plus">＋</span>',sound:'care',mood:3,effect:{health:28,mood:2}},
-'med-cone':{cls:'med-cone',notice:'护理头套拿出来，奶糕先疑惑地歪了歪头。',text:'奶糕戴上模拟护理头套，走了两步又停下来适应。',prop:'<span class="prop-cone">🔶</span>',fx:'<span class="question-mark">?</span>',sound:'rustle',mood:1,effect:{health:15,mood:-1}},
-'med-check':{cls:'med-check',notice:'听诊器靠近，奶糕安静地坐着。',text:'模拟体检完成：听一听、看一看，然后奖励奶糕休息。',prop:'<span class="prop-check">🩺</span>',fx:'<span class="care-plus">＋</span>',sound:'softcare',mood:3,effect:{health:38,mood:2}},
-'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5,effect:{health:20,mood:5,hunger:-1}}
+'care-brush':{cls:'care-brush',notice:'梳子靠近时，奶糕先回头闻了闻。',text:'从头到背轻轻梳毛，奶糕眯着眼睛坐得很稳。',prop:'<span class="prop-brush">🪮</span>',fx:'<span class="spark spark-1">✦</span><span class="spark spark-2">✦</span>',sound:'brush',mood:5,effect:{clean:22,mood:4}},
+'care-bath':{cls:'care-bath',notice:'听见水声，奶糕往后缩了一小步。',text:'温水花洒轻轻冲洗，泡泡洗掉脏东西，最后甩了甩毛。',prop:'<span class="prop-shower">🚿</span>',fx:'<span class="bubble bubble-1">○</span><span class="bubble bubble-2">○</span><span class="bubble bubble-3">○</span>',sound:'splash',mood:2,effect:{clean:80,mood:2}},
+'care-towel':{cls:'care-towel',notice:'大毛巾铺开，奶糕站在原地看了看。',text:'毛巾轻轻包住奶糕，把湿湿的毛擦干。',prop:'<span class="prop-towel">🧺</span>',fx:'<span class="warm-line">☀</span>',sound:'rustle',mood:4,effect:{clean:16,mood:3}},
+'care-nail':{cls:'care-nail',notice:'奶糕把爪子缩了一下，但还是乖乖坐好。',text:'只做模拟指甲护理：轻轻托住爪子，一只一只检查。',prop:'<span class="prop-nail">✨</span>',fx:'<span class="paw-mark">🐾</span>',sound:'clip',mood:2,effect:{clean:8,mood:1}},
+'med-kit':{cls:'med-kit',notice:'护理包打开，奶糕安静地看着里面的东西。',text:'完成一次温和的模拟护理，奶糕随后趴下休息。',prop:'<span class="prop-kit">🧰</span>',fx:'<span class="care-plus">＋</span>',sound:'care',mood:3,effect:{health:34,mood:2}},
+'med-cone':{cls:'med-cone',notice:'护理头套拿出来，奶糕先疑惑地歪了歪头。',text:'奶糕戴上模拟护理头套，走了两步又停下来适应。',prop:'<span class="prop-cone">🔶</span>',fx:'<span class="question-mark">?</span>',sound:'rustle',mood:1,effect:{health:20,mood:-1}},
+'med-check':{cls:'med-check',notice:'听诊器靠近，奶糕安静地坐着。',text:'模拟体检完成：听一听、看一看，然后奖励奶糕休息。',prop:'<span class="prop-check">🩺</span>',fx:'<span class="care-plus">＋</span>',sound:'softcare',mood:3,effect:{health:48,mood:2}},
+'med-rest':{cls:'med-rest',notice:'柔软的小垫子铺好后，奶糕先踩了踩。',text:'奶糕在垫子上转一圈，蜷成一团慢慢睡着了。',prop:'<span class="prop-rest">🛏️</span>',fx:'<span class="zzz">Z z z</span>',sound:'rest',mood:5,effect:{health:26,mood:5}}
 };
 const nowMs=()=>Date.now();
 const BACKUP_LATEST='miaomiao-backup-latest-v1';
@@ -198,11 +198,11 @@ function ensurePetVitals(){
 function petConditionMessage(){
   const p=state.pet;
   if(p.health<45)return '奶糕有点不舒服，需要护理一下。';
-  if(p.hunger<22)return '奶糕肚子饿了，一直在饭碗旁边转。';
-  if(p.cleanliness<24)return '奶糕身上有点脏，该洗澡或梳毛了。';
-  if(p.health<70)return '奶糕今天有点没精神，多休息和护理会更好。';
-  if(p.hunger<42)return '奶糕有点饿了，看到食物会特别期待。';
-  if(p.cleanliness<45)return '奶糕的毛有点乱，想要梳一梳。';
+  if(p.hunger<18)return '奶糕真的饿了，正在饭碗旁边等你。';
+  if(p.cleanliness<18)return '奶糕身上有点脏，该洗澡或梳毛了。';
+  if(p.health<65)return '奶糕今天有点没精神，多休息和护理会更好。';
+  if(p.hunger<35)return '奶糕有点饿了，看到食物会特别期待。';
+  if(p.cleanliness<35)return '奶糕的毛有点乱，想要梳一梳。';
   if(p.mood<45)return '奶糕有点无聊，想和你玩一会儿。';
   return '奶糕状态不错，正安静地待在小屋里。';
 }
@@ -214,14 +214,22 @@ function updatePetNeeds(now=nowMs(),persist=true){
   let remaining=elapsed;
   while(remaining>0){
     const step=Math.min(1,remaining);
-    p.hunger=clampPet(p.hunger-3*step);
-    p.cleanliness=clampPet(p.cleanliness-1.35*step);
-    const stressed=p.hunger<22||p.cleanliness<20,mildlyStressed=p.hunger<38||p.cleanliness<35;
-    if(stressed)p.health=clampPet(p.health-1.35*step);
-    else if(p.hunger>55&&p.cleanliness>55)p.health=clampPet(p.health+0.18*step);
-    if(stressed||p.health<60)p.mood=clampPet(p.mood-1.15*step);
-    else if(mildlyStressed)p.mood=clampPet(p.mood-0.45*step);
-    else p.mood=clampPet(p.mood-0.08*step);
+
+    // Child-friendly electronic-pet pacing:
+    // satiety about -24/day, cleanliness about -8.4/day.
+    p.hunger=clampPet(p.hunger-1.0*step);
+    p.cleanliness=clampPet(p.cleanliness-0.35*step);
+
+    // Illness is a consequence of prolonged severe neglect, not normal daily decay.
+    const critical=p.hunger<15||p.cleanliness<15;
+    const needsAttention=p.hunger<35||p.cleanliness<35;
+    if(critical)p.health=clampPet(p.health-0.28*step);
+    else if(p.hunger>55&&p.cleanliness>55)p.health=clampPet(p.health+0.10*step);
+
+    if(critical||p.health<55)p.mood=clampPet(p.mood-0.35*step);
+    else if(needsAttention)p.mood=clampPet(p.mood-0.12*step);
+    else p.mood=clampPet(p.mood-0.03*step);
+
     remaining-=step;
   }
   p.lastUpdated=now;p.message=petConditionMessage();if(persist)save();
@@ -265,6 +273,16 @@ function applyKnownMigrations(){
   }
   if(!state.migrations.starterFish){
     state.fish+=6;state.migrations.starterFish=true;starterFishGranted=true;
+  }
+  if(!state.migrations.petBalanceV2){
+    ensurePetVitals();
+    state.pet.hunger=Math.max(state.pet.hunger,72);
+    state.pet.cleanliness=Math.max(state.pet.cleanliness,78);
+    state.pet.health=Math.max(state.pet.health,92);
+    state.pet.mood=Math.max(state.pet.mood,75);
+    state.pet.lastUpdated=nowMs();
+    state.pet.message='奶糕的照顾节奏已调整得更轻松，今天可以慢慢来。';
+    state.migrations.petBalanceV2=true;
   }
 }
 function restoreBackupByKey(k){
@@ -658,9 +676,9 @@ function renderPet(){
         <div class="pet-room-bg"><span class="window">☁️</span><span class="plant">🪴</span><span class="bed">🧺</span></div>
         <div class="pet-message" id="petMessage">${esc(state.pet.message)}</div>
         <div class="pet-condition-layer">
-          ${state.pet.hunger<35?'<span class="pet-condition hungry">🍽️</span>':''}
-          ${state.pet.cleanliness<35?'<span class="pet-condition dirty">✦</span>':''}
-          ${state.pet.health<60?'<span class="pet-condition sick">🤒</span>':''}
+          ${state.pet.hunger<30?'<span class="pet-condition hungry">🍽️</span>':''}
+          ${state.pet.cleanliness<30?'<span class="pet-condition dirty">✦</span>':''}
+          ${state.pet.health<55?'<span class="pet-condition sick">🤒</span>':''}
         </div>
         <div class="pet-effect-layer" id="petEffects"></div>
         <div class="cat-avatar idle ${state.pet.health<45?'pet-sick':''}" id="catAvatar" role="img" aria-label="橘猫奶糕">${catSvg('large')}</div>
